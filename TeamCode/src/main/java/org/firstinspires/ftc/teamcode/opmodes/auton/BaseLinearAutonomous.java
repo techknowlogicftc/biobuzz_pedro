@@ -1,0 +1,486 @@
+package org.firstinspires.ftc.teamcode.opmodes.auton;
+
+/**
+ * BaseLinearAutonomous - state-sequence autonomous base class (ported from Decode_Pedro to Pedro Pathing 3).
+ *
+ * Same architecture as Decode_Pedro:
+ * - Subclasses build a list of StateNodes in buildStateSequence(); the base class runs them in order
+ * - Parameterized generic states (MOVE_TO_TARGET, MOVE_TO_TARGET_SLOW, WAIT) take a LaunchTarget / time
+ * - Alliance-agnostic design using AllianceConfig (thin Blue/Red subclasses)
+ * - Forced RETURN_HOME at the deadline so the robot finishes inside 30 seconds
+ * - Final pose stored in PoseHolder for a seamless autonomous-to-teleop transition
+ *
+ * DECODE-specific launcher/kicker/intake states and hardware were not carried over.
+ * Add this robot's mechanism states to AutonomousState and handle them in updateAutonomous().
+ *
+ * Subclasses must implement:
+ * - buildStateSequence(): Define the sequence of states for the autonomous program
+ * - getAllianceConfig(): Provide alliance-specific configuration (Blue/Red)
+ */
+
+import static com.pedropathing.api.Paths.line;
+
+import com.pedropathing.follower.Follower;
+import com.pedropathing.math.Pose;
+import com.pedropathing.paths.Path;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.teamcode.opmodes.AllianceConfig;
+import org.firstinspires.ftc.teamcode.opmodes.LaunchTarget;
+import org.firstinspires.ftc.teamcode.opmodes.PoseHolder;
+import org.firstinspires.ftc.teamcode.opmodes.RobotConstants;
+import org.firstinspires.ftc.teamcode.pedro.Constants;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public abstract class BaseLinearAutonomous extends LinearOpMode {
+    // Hardware components
+    protected Follower follower;                    // Main robot movement controller
+
+    // Alliance-specific configuration
+    protected AllianceConfig allianceConfig;
+
+    // Autonomous state tracking
+    protected AutonomousState currentState = AutonomousState.COMPLETE;
+
+    // Path following state tracking
+    protected boolean pathStarted = false;          // Reset whenever a state advances
+
+    // Timing control
+    protected ElapsedTime autonomousTimer = new ElapsedTime();  // Tracks total autonomous runtime (never reset)
+    protected ElapsedTime stateTimer = new ElapsedTime();       // Tracks individual state duration (reset on state change)
+    protected ElapsedTime pathTimer = new ElapsedTime();
+
+    // Speed for autonomous navigation, as a fraction of the robot's max achievable velocity (1.0 = full speed)
+    protected static final double AUTONOMOUS_SPEED_MULTIPLIER = RobotConstants.AUTON_SPEED_MULTIPLIER;
+
+    // Autonomous states
+    protected enum AutonomousState {
+        MOVE_TO_TARGET,                 // Parameterized: drive to "target" at autonomous speed
+        MOVE_TO_TARGET_SLOW,            // Parameterized: drive to "target" at INTAKE_MOVEMENT_SPEED
+        WAIT,                           // Parameterized: pause for "ms" milliseconds
+        RETURN_HOME,                    // Return to auton end position
+        COMPLETE                        // Autonomous sequence complete
+    }
+
+    /**
+     * StateNode - Represents a single state in the autonomous sequence with optional parameters
+     */
+    protected static class StateNode {
+        private final AutonomousState state;
+        private final Map<String, Object> parameters;
+
+        public StateNode(AutonomousState state) {
+            this.state = state;
+            this.parameters = new HashMap<>();
+        }
+
+        public StateNode(AutonomousState state, Map<String, Object> parameters) {
+            this.state = state;
+            this.parameters = parameters != null ? parameters : new HashMap<>();
+        }
+
+        public AutonomousState getState() {
+            return state;
+        }
+
+        public Map<String, Object> getParameters() {
+            return parameters;
+        }
+
+        public Object getParameter(String key) {
+            return parameters.get(key);
+        }
+
+        public String getParameterAsString(String key, String defaultValue) {
+            Object value = parameters.get(key);
+            return value != null ? value.toString() : defaultValue;
+        }
+
+        public Pose getParameterAsPose(String key) {
+            return (Pose) parameters.get(key);
+        }
+    }
+
+    // State sequence management
+    protected List<StateNode> stateSequence = new ArrayList<>();
+    protected int currentStateIndex = 0;
+
+    /**
+     * Subclasses must implement this method to build their state sequence
+     * @return List of StateNode objects defining the autonomous sequence
+     */
+    protected abstract List<StateNode> buildStateSequence();
+
+    /**
+     * Abstract method that subclasses must implement to provide alliance-specific configuration
+     * @return AllianceConfig object with alliance-specific constants
+     */
+    protected abstract AllianceConfig getAllianceConfig();
+
+    /**
+     * Overridable method for subclasses to configure the autonomous timeout
+     * Default is 28 seconds (28000ms) to ensure return home before 30 second limit
+     * @return Timeout in milliseconds
+     */
+    protected long getAutonomousTimeoutMs() {
+        return RobotConstants.AUTONOMOUS_RETURN_HOME_DEADLINE_MS;
+    }
+
+    // ========== Helper Methods for Building State Sequences ==========
+
+    /**
+     * Helper method to create a simple StateNode without parameters
+     */
+    protected StateNode state(AutonomousState state) {
+        return new StateNode(state);
+    }
+
+    /**
+     * Helper method to create a StateNode with parameters
+     */
+    protected StateNode state(AutonomousState state, Map<String, Object> parameters) {
+        return new StateNode(state, parameters);
+    }
+
+    /**
+     * Helper method to create a MOVE_TO_TARGET StateNode
+     */
+    protected StateNode moveTo(LaunchTarget target) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("target", target);
+        return state(AutonomousState.MOVE_TO_TARGET, params);
+    }
+
+    /**
+     * Helper method to create a MOVE_TO_TARGET_SLOW StateNode
+     */
+    protected StateNode moveSlowTo(LaunchTarget target) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("target", target);
+        return state(AutonomousState.MOVE_TO_TARGET_SLOW, params);
+    }
+
+    /**
+     * Helper method to create a WAIT StateNode
+     */
+    protected StateNode waitMs(long ms) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("ms", ms);
+        return state(AutonomousState.WAIT, params);
+    }
+
+    /**
+     * Helper method to add a complete collection cycle to the state sequence
+     * A collection cycle consists of:
+     * 1. Move to intake start position
+     * 2. Move slowly to intake end position
+     *
+     * @param sequence The list to add states to
+     * @param intakeStartTarget LaunchTarget for intake start position
+     * @param intakeEndTarget LaunchTarget for intake end position
+     */
+    protected void addCollectionCycle(List<StateNode> sequence,
+                                      LaunchTarget intakeStartTarget,
+                                      LaunchTarget intakeEndTarget) {
+        sequence.add(moveTo(intakeStartTarget));
+        sequence.add(moveSlowTo(intakeEndTarget));
+    }
+
+    @Override
+    public void runOpMode() throws InterruptedException {
+        // INITIALIZATION PHASE (equivalent to init())
+        // Get alliance-specific configuration
+        allianceConfig = getAllianceConfig();
+
+        // Initialize hardware components
+        initializeHardware();
+
+        // Build state sequence from subclass
+        stateSequence = buildStateSequence();
+        if (stateSequence == null || stateSequence.isEmpty()) {
+            throw new IllegalStateException("buildStateSequence() must return a non-empty list");
+        }
+        telemetry.addData("State Sequence", "Loaded (" + stateSequence.size() + " states)");
+
+        // Display ready status
+        telemetry.addData("Status", "Ready to start autonomous");
+        telemetry.addData("Alliance", allianceConfig.getAllianceName());
+        telemetry.update();
+
+        // Wait for the game to start (driver presses PLAY)
+        waitForStart();
+
+        // START PHASE (equivalent to start())
+        if (isStopRequested()) return;
+
+        // Start the autonomous sequence timer (tracks total runtime, never reset)
+        autonomousTimer.reset();
+
+        // Start the state timer for individual state tracking
+        stateTimer.reset();
+
+        // Initialize state sequence
+        currentStateIndex = 0;
+        currentState = stateSequence.get(0).getState();
+
+        // MAIN LOOP PHASE (equivalent to loop())
+        while (opModeIsActive() && currentState != AutonomousState.COMPLETE) {
+            updateAutonomous();
+            telemetry.update();
+        }
+
+        // Final cleanup (when COMPLETE or opMode stopped)
+        stopAllMotors();
+
+        // Stop the follower to prevent continued navigation
+        if (follower != null) {
+            follower.stop();
+
+            // Store the final pose in PoseHolder for TeleOp to use
+            Pose finalPose = follower.pose();
+            PoseHolder.setCurrentPose(finalPose);
+            telemetry.addData("Status", "Autonomous Complete!");
+            telemetry.addData("Final Pose", String.format("(%.1f, %.1f, %.1f°)",
+                finalPose.x(), finalPose.y(), Math.toDegrees(finalPose.heading())));
+            telemetry.addData("Pose Stored", "Ready for TeleOp transition");
+            telemetry.update();
+        }
+    }
+
+    /**
+     * Initialize hardware. Override (and call super) to add this robot's mechanisms.
+     */
+    protected void initializeHardware() {
+        follower = Constants.create(hardwareMap);
+        follower.setPose(allianceConfig.getInitPose());
+        follower.update();
+    }
+
+    /**
+     * Main state machine update - called every loop
+     */
+    protected void updateAutonomous() {
+        // Check if we've exceeded the return home deadline (safety mechanism to ensure completion within 30 seconds)
+        // NOTE: Using autonomousTimer which tracks total runtime and is never reset during the sequence
+        if (autonomousTimer.milliseconds() >= getAutonomousTimeoutMs()) {
+            // Only force return home if not already returning or complete
+            if (currentState != AutonomousState.RETURN_HOME && currentState != AutonomousState.COMPLETE) {
+                telemetry.addData("WARNING", String.format("Time deadline reached (%.1fs) - Forcing return home!",
+                    autonomousTimer.milliseconds() / 1000.0));
+
+                // Reset path flag and transition to return home
+                pathStarted = false;
+                currentState = AutonomousState.RETURN_HOME;
+                stateTimer.reset();  // Reset for the return home sequence
+            }
+        }
+
+        switch (currentState) {
+            case MOVE_TO_TARGET:
+                handleMoveToTargetState(AUTONOMOUS_SPEED_MULTIPLIER, RobotConstants.PATH_TIMEOUT_MS);
+                break;
+            case MOVE_TO_TARGET_SLOW:
+                handleMoveToTargetState(RobotConstants.INTAKE_MOVEMENT_SPEED, RobotConstants.INTAKE_PATH_TIMEOUT_MS);
+                break;
+            case WAIT:
+                handleWaitState();
+                break;
+            case RETURN_HOME:
+                handleMoveToHomeState();
+                break;
+            case COMPLETE:
+                break;
+        }
+
+        // Update follower and telemetry
+        if (currentState != AutonomousState.COMPLETE) {
+            follower.update();
+            updateTelemetry();
+        }
+    }
+
+    /**
+     * Handle a parameterized move to the StateNode's "target"
+     */
+    protected void handleMoveToTargetState(double speed, long timeoutMs) {
+        StateNode currentNode = getCurrentStateNode();
+        LaunchTarget target = currentNode != null ? (LaunchTarget) currentNode.getParameter("target") : null;
+        if (target == null) {
+            telemetry.addData("ERROR", currentState + " missing target parameter - skipping");
+            advanceToNextState();
+            return;
+        }
+
+        Pose targetPose = allianceConfig.getTargetPose(target);
+
+        // Start path following if not already started
+        if (!pathStarted) {
+            follower.follow(pathTo(targetPose, speed));
+            pathStarted = true;
+            pathTimer.reset();
+            telemetry.addData("Status", "Starting path to " + target.name());
+        }
+
+        // Check for path timeout
+        boolean pathTimedOut = pathTimer.milliseconds() >= timeoutMs;
+        if (pathTimedOut) {
+            telemetry.addData("WARNING", "Path to " + target.name() + " timed out!");
+        }
+
+        // Path complete AND at target pose, OR timeout
+        if ((!follower.isBusy() && isAtTargetPose(targetPose)) || pathTimedOut) {
+            telemetry.addData("Status", "Reached " + target.name());
+            advanceToNextState();
+        }
+    }
+
+    /**
+     * Handle a parameterized pause of "ms" milliseconds
+     */
+    protected void handleWaitState() {
+        StateNode currentNode = getCurrentStateNode();
+        Object ms = currentNode != null ? currentNode.getParameter("ms") : null;
+        long waitMs = ms instanceof Number ? ((Number) ms).longValue() : 0;
+
+        telemetry.addData("Status", String.format("Waiting %.1fs", (waitMs - stateTimer.milliseconds()) / 1000.0));
+        if (stateTimer.milliseconds() >= waitMs) {
+            advanceToNextState();
+        }
+    }
+
+    /**
+     * Handle moving to home position
+     */
+    protected void handleMoveToHomeState() {
+        Pose targetPose = allianceConfig.getAutonEndPose();
+
+        // Start path following if not already started
+        if (!pathStarted) {
+            follower.follow(pathTo(targetPose, AUTONOMOUS_SPEED_MULTIPLIER));
+            pathStarted = true;
+            pathTimer.reset();
+            telemetry.addData("Status", "Starting path to home position...");
+        }
+
+        // Check for path timeout
+        boolean pathTimedOut = pathTimer.milliseconds() >= RobotConstants.PATH_TIMEOUT_MS;
+        if (pathTimedOut) {
+            telemetry.addData("WARNING", "Path to home timed out!");
+        }
+
+        // Check if we've reached the target (path complete AND at target pose, OR timeout)
+        if ((!follower.isBusy() && isAtTargetPose(targetPose)) || pathTimedOut) {
+            // Proceed directly to complete state
+            currentState = AutonomousState.COMPLETE;
+            stateTimer.reset();
+            telemetry.addData("Status", "Reached home position - Complete...");
+        }
+    }
+
+    /**
+     * Straight-line path from the robot's current pose to targetPose.
+     * Short paths turn to the target heading immediately; longer paths turn gradually along the way.
+     */
+    protected Path pathTo(Pose targetPose, double speed) {
+        Pose currentPose = follower.pose();
+        Path path = line(currentPose, targetPose);
+        if (currentPose.distance(targetPose) < RobotConstants.SHORT_PATH_THRESHOLD_MM) {
+            path = path.constant(targetPose);
+        } else {
+            path = path.linear(currentPose, targetPose);
+        }
+        return path.with(Constants.foresightConfig.maxPathSpeed.at(speed));
+    }
+
+    /**
+     * Update telemetry display
+     */
+    protected void updateTelemetry() {
+        Pose currentPose = follower.pose();
+
+        double elapsedSeconds = autonomousTimer.milliseconds() / 1000.0;
+        double remainingSeconds = (getAutonomousTimeoutMs() - autonomousTimer.milliseconds()) / 1000.0;
+
+        telemetry.addData("Elapsed", String.format("%.1fs (home in %.1fs)", elapsedSeconds, Math.max(0, remainingSeconds)));
+        telemetry.addData("State", String.format("%s (%d/%d)", currentState, currentStateIndex + 1, stateSequence.size()));
+        telemetry.addData("Pose", String.format("(%.1f, %.1f, %.1f°)",
+            currentPose.x(), currentPose.y(), Math.toDegrees(currentPose.heading())));
+        telemetry.addData("Follower Status", follower.isBusy() ? "BUSY" : "IDLE");
+    }
+
+    /**
+     * Stop all mechanisms. Override to stop this robot's mechanisms.
+     */
+    protected void stopAllMotors() {
+    }
+
+    /**
+     * Checks if the robot is at the specified target pose within tolerance
+     */
+    protected boolean isAtTargetPose(Pose targetPose) {
+        return isAtTargetPosition(targetPose) && isAtTargetHeading(targetPose);
+    }
+
+    /**
+     * Checks if the robot position (X, Y) is at target within tolerance
+     */
+    protected boolean isAtTargetPosition(Pose targetPose) {
+        return follower.pose().distance(targetPose) <= RobotConstants.POSITION_TOLERANCE;
+    }
+
+    /**
+     * Checks if the robot heading is at target within tolerance
+     */
+    protected boolean isAtTargetHeading(Pose targetPose) {
+        double headingDifference = Math.abs(normalizeAngle(targetPose.heading() - follower.pose().heading()));
+        return headingDifference <= RobotConstants.HEADING_TOLERANCE;
+    }
+
+    /**
+     * Normalizes an angle to be within [-π, π] range
+     */
+    protected double normalizeAngle(double angle) {
+        while (angle > Math.PI) {
+            angle -= 2 * Math.PI;
+        }
+        while (angle < -Math.PI) {
+            angle += 2 * Math.PI;
+        }
+        return angle;
+    }
+
+    /**
+     * Helper method to advance to the next state in the sequence
+     */
+    protected void advanceToNextState() {
+        if (stateSequence == null || stateSequence.isEmpty()) {
+            return;
+        }
+
+        pathStarted = false;  // Next state starts its own path
+        currentStateIndex++;
+        if (currentStateIndex < stateSequence.size()) {
+            currentState = stateSequence.get(currentStateIndex).getState();
+            stateTimer.reset();
+        } else {
+            // Reached end of sequence
+            currentState = AutonomousState.COMPLETE;
+            stateTimer.reset();
+        }
+    }
+
+    /**
+     * Helper method to get the current state node from the sequence
+     */
+    protected StateNode getCurrentStateNode() {
+        if (stateSequence == null || currentStateIndex >= stateSequence.size()) {
+            return null;
+        }
+        return stateSequence.get(currentStateIndex);
+    }
+}
