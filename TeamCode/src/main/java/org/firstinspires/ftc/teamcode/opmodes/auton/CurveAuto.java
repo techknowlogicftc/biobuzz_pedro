@@ -11,6 +11,7 @@ import com.pedropathing.paths.interpolator.Interpolator;
 import com.pedropathing.utils.Angle;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import org.firstinspires.ftc.teamcode.opmodes.RobotConstants;
 
 import static com.pedropathing.api.Paths.line;
 import static com.pedropathing.ivy.Scheduler.schedule;
@@ -26,7 +27,6 @@ public class CurveAuto extends OpMode {
 
     // Path speed as a fraction of the robot's max achievable velocity (1.0 = full speed).
     // Lower this to move slower.
-    private static final double PATH_SPEED = 0.5;
 
     // Poses
     private final Pose start = poseFactory.of(57, 9, 90);
@@ -41,7 +41,7 @@ public class CurveAuto extends OpMode {
                 .heading(Interpolator.piecewise()
                         .until(0.5, Interpolator.linear(start, middle))
                         .until(1.0, Interpolator.linear(middle, end)))
-                .with(Constants.foresightConfig.maxPathSpeed.at(PATH_SPEED));
+                .with(Constants.foresightConfig.maxPathSpeed.at(RobotConstants.TEST_PATH_SPEED));
     }
 
     private Command autoRoutine() {

@@ -4,41 +4,27 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import org.firstinspires.ftc.teamcode.opmodes.RobotConstants;
 
 /**
  * LaunchTestTeleOp - A minimal TeleOp program for testing launch speeds
  *
  * This program provides ONLY launcher functionality for testing and tuning:
  * - Toggle launcher motors on/off with gamepad1.y
- * - Uses the launch constants defined at the top of this class
  *
  * TO ADJUST SPEEDS:
- * Edit the constants at the top of this class:
- * - FAR_LAUNCH_SPEED: Speed used when the launcher is toggled on
- * - NEAR_LAUNCH_SPEED: Full speed for normal launch (teleop)
+ * Edit these constants in RobotConstants:
+ * - RobotConstants.LAUNCH_TEST_SPEED_1: Speed used when the launcher is toggled on
+ * - RobotConstants.NEAR_LAUNCH_SPEED: Full speed for normal launch (teleop)
  *
  * CONTROLS:
  * - gamepad1.y: Toggle launcher motors on/off
- * - gamepad1.x / a / b: Run launcher at FAR_LAUNCH_SPEED / FAR_LAUNCH_SPEED2 / FAR_LAUNCH_SPEED3
- * - gamepad1.right_trigger: Hold to run launcher proportionally up to FAR_LAUNCH_SPEED4; release to stop
+ * - gamepad1.x / a / b: Run launcher at RobotConstants.LAUNCH_TEST_SPEED_1 / RobotConstants.LAUNCH_TEST_SPEED_2 / RobotConstants.LAUNCH_TEST_SPEED_3
+ * - gamepad1.right_trigger: Hold to run launcher proportionally up to RobotConstants.LAUNCHER_MAX_SPEED; release to stop
  */
 
 @TeleOp(name = "Launch Test", group = "Test")
 public class LaunchTestTeleOp extends OpMode {
-    // Launch constants (copied from Decode_Pedro RobotConstants)
-    public static final int NEAR_LAUNCH_SPEED = 2080;         // Full speed for normal launch (teleop)
-    public static final int FAR_LAUNCH_SPEED = 300;          // High speed for small triangle launch (teleop)
-    public static final int FAR_LAUNCH_SPEED2 = 2000;
-
-    public static final int FAR_LAUNCH_SPEED3 = 2500;
-
-    public static final int FAR_LAUNCH_SPEED4 = 3000;          // High speed for small triangle launch (teleop)
-// High speed for small triangle launch (teleop)
-// High speed for small triangle launch (teleop)
-
-    public static final int LAUNCHER_STOP_SPEED = 0;          // Stop speed
-    public static final double TRIGGER_DEADBAND = 0.05;       // Ignore trigger values below this
-
     // Hardware components
     protected DcMotorEx launch1;      // Left launcher motor
     protected DcMotorEx launch2;      // Right launcher motor
@@ -54,14 +40,14 @@ public class LaunchTestTeleOp extends OpMode {
 
         // Configure launcher motors for encoder-based velocity control
         launch1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        launch1.getMotorType().setTicksPerRev(28);
+        launch1.getMotorType().setTicksPerRev(RobotConstants.LAUNCHER_TICKS_PER_REV);
         launch2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         launch1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         launch2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // Stop launcher motors
-        launch1.setVelocity(LAUNCHER_STOP_SPEED);
-        launch2.setVelocity(LAUNCHER_STOP_SPEED);
+        launch1.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
+        launch2.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
 
         telemetry.addData("Status", "Launch Test TeleOp Ready");
         telemetry.addData("Controls", "Y=toggle launcher, X/A/B=set speed, RT=variable speed");
@@ -72,8 +58,8 @@ public class LaunchTestTeleOp extends OpMode {
     @Override
     public void start() {
         // Reset state when opmode starts
-        launch1.setVelocity(LAUNCHER_STOP_SPEED);
-        launch2.setVelocity(LAUNCHER_STOP_SPEED);
+        launch1.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
+        launch2.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
     }
 
     @Override
@@ -82,35 +68,35 @@ public class LaunchTestTeleOp extends OpMode {
         if (gamepad1.yWasPressed()) {
             launcherOn = !launcherOn;
             if (launcherOn) {
-                launch1.setVelocity(FAR_LAUNCH_SPEED);
-                launch2.setVelocity(FAR_LAUNCH_SPEED);
+                launch1.setVelocity(RobotConstants.LAUNCH_TEST_SPEED_1);
+                launch2.setVelocity(RobotConstants.LAUNCH_TEST_SPEED_1);
                 telemetry.addData("Status", "Launcher motors ON");
             } else {
-                launch1.setVelocity(LAUNCHER_STOP_SPEED);
-                launch2.setVelocity(LAUNCHER_STOP_SPEED);
+                launch1.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
+                launch2.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
                 telemetry.addData("Status", "Launcher motors OFF");
             }
         }
 
         // Select launcher speed with X, A or B
         if (gamepad1.xWasPressed()) {
-            setLaunchSpeed(FAR_LAUNCH_SPEED);
+            setLaunchSpeed(RobotConstants.LAUNCH_TEST_SPEED_1);
         } else if (gamepad1.aWasPressed()) {
-            setLaunchSpeed(FAR_LAUNCH_SPEED2);
+            setLaunchSpeed(RobotConstants.LAUNCH_TEST_SPEED_2);
         } else if (gamepad1.bWasPressed()) {
-            setLaunchSpeed(FAR_LAUNCH_SPEED3);
+            setLaunchSpeed(RobotConstants.LAUNCH_TEST_SPEED_3);
         }
 
-        // Right trigger sets launcher speed proportionally (0 to FAR_LAUNCH_SPEED4)
-        if (gamepad1.right_trigger > TRIGGER_DEADBAND) {
+        // Right trigger sets launcher speed proportionally (0 to RobotConstants.LAUNCHER_MAX_SPEED)
+        if (gamepad1.right_trigger > RobotConstants.TRIGGER_DEADBAND) {
             triggerActive = true;
-            setLaunchSpeed((int) (gamepad1.right_trigger * FAR_LAUNCH_SPEED4));
+            setLaunchSpeed((int) (gamepad1.right_trigger * RobotConstants.LAUNCHER_MAX_SPEED));
         } else if (triggerActive) {
             // Trigger released - stop launcher
             triggerActive = false;
             launcherOn = false;
-            launch1.setVelocity(LAUNCHER_STOP_SPEED);
-            launch2.setVelocity(LAUNCHER_STOP_SPEED);
+            launch1.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
+            launch2.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
             telemetry.addData("Status", "Trigger released - Launcher motors OFF");
         }
 
@@ -155,7 +141,7 @@ public class LaunchTestTeleOp extends OpMode {
         telemetry.addData("---", "---");
 
         telemetry.addData("Speeds:", "");
-        //telemetry.addData("  Full Speed", String.format("%d ticks/sec", NEAR_LAUNCH_SPEED));
+        //telemetry.addData("  Full Speed", String.format("%d ticks/sec", RobotConstants.NEAR_LAUNCH_SPEED));
         telemetry.addData("---", "---");
         telemetry.addData("Controls", "Y=toggle launcher, X/A/B=set speed, RT=variable speed");
         telemetry.update();
@@ -164,7 +150,7 @@ public class LaunchTestTeleOp extends OpMode {
     @Override
     public void stop() {
         // Cleanup when opmode stops
-        launch1.setVelocity(LAUNCHER_STOP_SPEED);
-        launch2.setVelocity(LAUNCHER_STOP_SPEED);
+        launch1.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
+        launch2.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
     }
 }

@@ -59,7 +59,29 @@ public class RobotConstants {
     public static final int FAR_LAUNCH_SPEED = 2350;         // High speed for small triangle launch (teleop)
     public static final int LAUNCHER_DUMMY_SPEED = 1000;        // Half speed for dummy launch
     public static final int LAUNCHER_STOP_SPEED = 0;            // Stop speed
-    
+    public static final int LAUNCHER_MAX_SPEED = 3000;          // Max speed for variable (trigger) control
+    public static final double LAUNCHER_TICKS_PER_REV = 28;     // Encoder ticks per motor revolution
+
+    // Launcher test speeds (ticks per second) - X / A / B buttons in LaunchTestTeleOp
+    public static final int LAUNCH_TEST_SPEED_1 = 300;
+    public static final int LAUNCH_TEST_SPEED_2 = 2000;
+    public static final int LAUNCH_TEST_SPEED_3 = 2500;
+
+    // Intake velocity constants (ticks per second) - starting values, not yet tuned on the robot
+    public static final int INTAKE_SPEED = 1500;                // Pull game pieces in
+    public static final int OUTTAKE_SPEED = -1500;              // Push game pieces back out
+    public static final int MAX_INTAKE_SPEED = 2500;            // Max speed for variable (trigger) control
+    public static final int INTAKE_STOP_SPEED = 0;              // Stop speed
+
+    // Driver control constants (for teleop)
+    public static final double STICK_DEADZONE = 0.1;            // Ignore joystick values below this
+    public static final double TRIGGER_DEADBAND = 0.05;         // Ignore trigger values below this
+    public static final double SLOW_MODE_MULTIPLIER = 0.25;     // Drive speed while slow mode is held
+    public static final double TEST_MOTOR_POWER = 0.5;          // Power for single-motor wiring tests
+
+    // Test autonomous constants (LinearAuto, CurveAuto)
+    public static final double TEST_PATH_SPEED = 0.5;           // Max path speed for simple test paths
+
     // Autonomous-specific constants
     public static final boolean ENABLE_BALL_COLLECTION_SEQUENCE = true;  // Enable/disable ball collection after initial launch
     public static final double BALL_COLLECTION_SPEED = 0.25;  // 1/4 speed for ball collection

@@ -10,6 +10,7 @@ import com.pedropathing.paths.interpolator.Interpolator;
 import com.pedropathing.utils.Angle;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import org.firstinspires.ftc.teamcode.opmodes.RobotConstants;
 
 import static com.pedropathing.api.Paths.line;
 import static com.pedropathing.ivy.Scheduler.schedule;
@@ -25,7 +26,6 @@ public class LinearAuto extends OpMode {
 
     // Path speed as a fraction of the robot's max achievable velocity (1.0 = full speed).
     // Lower this to move slower.
-    private static final double PATH_SPEED = 0.5;
 
     // Poses
     private final Pose startPose = poseFactory.of(9, 9, 0);
@@ -37,19 +37,19 @@ public class LinearAuto extends OpMode {
     // Path methods
     private Path startToScore() {
         return line(startPose, scorePose).linear(startPose, scorePose)
-                .with(Constants.foresightConfig.maxPathSpeed.at(PATH_SPEED));
+                .with(Constants.foresightConfig.maxPathSpeed.at(RobotConstants.TEST_PATH_SPEED));
     }
 
     private Path park(){
         // 0 -> 180 is a half turn, so linear() could go either way; force counterclockwise
         return line(scorePose, parkPose).heading(counterClockwise(scorePose, parkPose))
-                .with(Constants.foresightConfig.maxPathSpeed.at(PATH_SPEED));
+                .with(Constants.foresightConfig.maxPathSpeed.at(RobotConstants.TEST_PATH_SPEED));
     }
 
     private Path finalPark(){
         // 0 -> 180 is a half turn, so linear() could go either way; force counterclockwise
         return line(parkPose, parkPose2).linear(parkPose, parkPose2)
-                .with(Constants.foresightConfig.maxPathSpeed.at(PATH_SPEED));
+                .with(Constants.foresightConfig.maxPathSpeed.at(RobotConstants.TEST_PATH_SPEED));
     }
 
     /**
