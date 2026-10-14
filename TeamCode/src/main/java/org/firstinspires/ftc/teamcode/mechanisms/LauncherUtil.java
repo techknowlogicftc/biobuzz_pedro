@@ -9,22 +9,22 @@ import org.firstinspires.ftc.teamcode.opmodes.RobotConstants;
  * Two-motor launcher with encoder-based velocity control.
  * Based on LaunchTestTeleOp from Ftc-Biobuzz.
  *
- * Hardware config names: "launchleft", "launchright"
+ * Hardware config names: "launchpollen", "launchnectar"
  * Speeds are in encoder ticks per second. Speed values live in RobotConstants.
  */
 public class LauncherUtil {
 
-    private DcMotorEx leftMotor;
-    private DcMotorEx rightMotor;
+    private DcMotorEx launchpollen;
+    private DcMotorEx launchnectar;
 
-    private int leftTargetSpeed = RobotConstants.LAUNCHER_STOP_SPEED;
-    private int rightTargetSpeed = RobotConstants.LAUNCHER_STOP_SPEED;
+    private int pollenTargetSpeed = RobotConstants.LAUNCHER_STOP_SPEED;
+    private int nectarTargetSpeed = RobotConstants.LAUNCHER_STOP_SPEED;
 
     public void init(HardwareMap hwMap) {
-        leftMotor = hwMap.get(DcMotorEx.class, "launchleft");
-        rightMotor = hwMap.get(DcMotorEx.class, "launchright");
+        launchpollen = hwMap.get(DcMotorEx.class, "launchpollen");
+        launchnectar = hwMap.get(DcMotorEx.class, "launchnectar");
 
-        for (DcMotorEx motor : new DcMotorEx[]{leftMotor, rightMotor}) {
+        for (DcMotorEx motor : new DcMotorEx[]{launchpollen, launchnectar}) {
             // Encoder-based velocity control
             motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             motor.getMotorType().setTicksPerRev(RobotConstants.LAUNCHER_TICKS_PER_REV);
@@ -40,8 +40,8 @@ public class LauncherUtil {
      * Run both launcher motors at the given velocity (ticks/sec)
      */
     public void setSpeed(int speed) {
-        setLeftSpeed(speed);
-        setRightSpeed(speed);
+        setPollenSpeed(speed);
+        setNectarSpeed(speed);
     }
 
     /**
@@ -73,107 +73,107 @@ public class LauncherUtil {
      * True if either motor has been told to run
      */
     public boolean isOn() {
-        return isLeftOn() || isRightOn();
+        return isPollenOn() || isNectarOn();
     }
 
-    // ---------------- Left motor ----------------
+    // ---------------- Pollen motor ----------------
 
     /**
-     * Run only the left launcher motor at the given velocity (ticks/sec)
+     * Run only the pollen launcher motor at the given velocity (ticks/sec)
      */
-    public void setLeftSpeed(int speed) {
-        leftTargetSpeed = speed;
-        leftMotor.setVelocity(speed);
-    }
-
-    /**
-     * Set left speed proportionally from 0..1 up to RobotConstants.LAUNCHER_MAX_SPEED
-     */
-    public void setLeftSpeedFraction(double fraction) {
-        setLeftSpeed(fractionToSpeed(fraction));
+    public void setPollenSpeed(int speed) {
+        pollenTargetSpeed = speed;
+        launchpollen.setVelocity(speed);
     }
 
     /**
-     * Turn the left motor on at RobotConstants.NEAR_LAUNCH_SPEED, or off if it is already on
+     * Set pollen speed proportionally from 0..1 up to RobotConstants.LAUNCHER_MAX_SPEED
      */
-    public void toggleLeft() {
-        setLeftSpeed(isLeftOn() ? RobotConstants.LAUNCHER_STOP_SPEED : RobotConstants.NEAR_LAUNCH_SPEED);
-    }
-
-    public void stopLeft() {
-        setLeftSpeed(RobotConstants.LAUNCHER_STOP_SPEED);
-    }
-
-    public boolean isLeftOn() {
-        return leftTargetSpeed != RobotConstants.LAUNCHER_STOP_SPEED;
-    }
-
-    public int getLeftTargetSpeed() {
-        return leftTargetSpeed;
+    public void setPollenSpeedFraction(double fraction) {
+        setPollenSpeed(fractionToSpeed(fraction));
     }
 
     /**
-     * Current left motor velocity in ticks/sec
+     * Turn the pollen motor on at RobotConstants.NEAR_LAUNCH_SPEED, or off if it is already on
      */
-    public double getLeftVelocity() {
-        return leftMotor.getVelocity();
+    public void togglePollen() {
+        setPollenSpeed(isPollenOn() ? RobotConstants.LAUNCHER_STOP_SPEED : RobotConstants.NEAR_LAUNCH_SPEED);
+    }
+
+    public void stopPollen() {
+        setPollenSpeed(RobotConstants.LAUNCHER_STOP_SPEED);
+    }
+
+    public boolean isPollenOn() {
+        return pollenTargetSpeed != RobotConstants.LAUNCHER_STOP_SPEED;
+    }
+
+    public int getPollenTargetSpeed() {
+        return pollenTargetSpeed;
     }
 
     /**
-     * Current left motor speed in RPM (0 when the left motor is off)
+     * Current pollen motor velocity in ticks/sec
      */
-    public double getLeftRpm() {
-        return isLeftOn() ? toRpm(leftMotor) : 0.0;
-    }
-
-    // ---------------- Right motor ----------------
-
-    /**
-     * Run only the right launcher motor at the given velocity (ticks/sec)
-     */
-    public void setRightSpeed(int speed) {
-        rightTargetSpeed = speed;
-        rightMotor.setVelocity(speed);
+    public double getPollenVelocity() {
+        return launchpollen.getVelocity();
     }
 
     /**
-     * Set right speed proportionally from 0..1 up to RobotConstants.LAUNCHER_MAX_SPEED
+     * Current pollen motor speed in RPM (0 when the pollen motor is off)
      */
-    public void setRightSpeedFraction(double fraction) {
-        setRightSpeed(fractionToSpeed(fraction));
+    public double getPollenRpm() {
+        return isPollenOn() ? toRpm(launchpollen) : 0.0;
+    }
+
+    // ---------------- Nectar motor ----------------
+
+    /**
+     * Run only the nectar launcher motor at the given velocity (ticks/sec)
+     */
+    public void setNectarSpeed(int speed) {
+        nectarTargetSpeed = speed;
+        launchnectar.setVelocity(speed);
     }
 
     /**
-     * Turn the right motor on at RobotConstants.NEAR_LAUNCH_SPEED, or off if it is already on
+     * Set nectar speed proportionally from 0..1 up to RobotConstants.LAUNCHER_MAX_SPEED
      */
-    public void toggleRight() {
-        setRightSpeed(isRightOn() ? RobotConstants.LAUNCHER_STOP_SPEED : RobotConstants.NEAR_LAUNCH_SPEED);
-    }
-
-    public void stopRight() {
-        setRightSpeed(RobotConstants.LAUNCHER_STOP_SPEED);
-    }
-
-    public boolean isRightOn() {
-        return rightTargetSpeed != RobotConstants.LAUNCHER_STOP_SPEED;
-    }
-
-    public int getRightTargetSpeed() {
-        return rightTargetSpeed;
+    public void setNectarSpeedFraction(double fraction) {
+        setNectarSpeed(fractionToSpeed(fraction));
     }
 
     /**
-     * Current right motor velocity in ticks/sec
+     * Turn the nectar motor on at RobotConstants.NEAR_LAUNCH_SPEED, or off if it is already on
      */
-    public double getRightVelocity() {
-        return rightMotor.getVelocity();
+    public void toggleNectar() {
+        setNectarSpeed(isNectarOn() ? RobotConstants.LAUNCHER_STOP_SPEED : RobotConstants.NEAR_LAUNCH_SPEED);
+    }
+
+    public void stopNectar() {
+        setNectarSpeed(RobotConstants.LAUNCHER_STOP_SPEED);
+    }
+
+    public boolean isNectarOn() {
+        return nectarTargetSpeed != RobotConstants.LAUNCHER_STOP_SPEED;
+    }
+
+    public int getNectarTargetSpeed() {
+        return nectarTargetSpeed;
     }
 
     /**
-     * Current right motor speed in RPM (0 when the right motor is off)
+     * Current nectar motor velocity in ticks/sec
      */
-    public double getRightRpm() {
-        return isRightOn() ? toRpm(rightMotor) : 0.0;
+    public double getNectarVelocity() {
+        return launchnectar.getVelocity();
+    }
+
+    /**
+     * Current nectar motor speed in RPM (0 when the nectar motor is off)
+     */
+    public double getNectarRpm() {
+        return isNectarOn() ? toRpm(launchnectar) : 0.0;
     }
 
     // ---------------- Helpers ----------------

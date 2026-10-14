@@ -68,14 +68,14 @@ public enum LaunchTarget {
 
     // Home/starting positions
     ALLIANCE_HOME(
-        new Pose(-52, -32, 0),                          // Blue alliance pose
-        new Pose(-48, 34, 0),                           // Red alliance pose
+        new Pose(12, 96, 0),                          // Blue alliance pose
+        new Pose(132, 36, 180),                           // Red alliance pose
         0                                                // No launcher
     ),
 
     INIT_POSE(
-        new Pose(-67.2, 50.4, Math.toRadians(180)),         // Blue alliance init position
-        new Pose(-66.3, -61.6, Math.toRadians(180)),          // Red alliance init position
+        new Pose(12, 96, 0),         // Blue alliance init position
+        new Pose(132, 36, 180),          // Red alliance init position
 
         0                                                // No launcher
     ),

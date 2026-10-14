@@ -55,8 +55,8 @@ public class RobotConstants {
     public static final long BALL_TRAVEL_DELAY_MS = 800;        // Time for ball to travel from kicker to launcher area
     
     // Launcher velocity constants (ticks per second)
-    public static final int NEAR_LAUNCH_SPEED = 2080;         // Full speed for normal launch (teleop)
-    public static final int FAR_LAUNCH_SPEED = 2350;         // High speed for small triangle launch (teleop)
+    public static final int NEAR_LAUNCH_SPEED = 1500;         // Full speed for normal launch (teleop)
+    public static final int FAR_LAUNCH_SPEED = 1800;         // High speed for small triangle launch (teleop)
     public static final int LAUNCHER_DUMMY_SPEED = 1000;        // Half speed for dummy launch
     public static final int LAUNCHER_STOP_SPEED = 0;            // Stop speed
     public static final int LAUNCHER_MAX_SPEED = 3000;          // Max speed for variable (trigger) control
@@ -68,9 +68,9 @@ public class RobotConstants {
     public static final int LAUNCH_TEST_SPEED_3 = 2500;
 
     // Intake velocity constants (ticks per second) - starting values, not yet tuned on the robot
-    public static final int INTAKE_SPEED = 1500;                // Pull game pieces in
-    public static final int OUTTAKE_SPEED = -1500;              // Push game pieces back out
-    public static final int MAX_INTAKE_SPEED = 2500;            // Max speed for variable (trigger) control
+    public static final int INTAKE_SPEED = 150;                // Pull game pieces in
+    public static final int OUTTAKE_SPEED = -150;              // Push game pieces back out
+    public static final int MAX_INTAKE_SPEED = 300;            // Max speed for variable (trigger) control
     public static final int INTAKE_STOP_SPEED = 0;              // Stop speed
 
     // Driver control constants (for teleop)
@@ -78,6 +78,12 @@ public class RobotConstants {
     public static final double TRIGGER_DEADBAND = 0.05;         // Ignore trigger values below this
     public static final double SLOW_MODE_MULTIPLIER = 0.25;     // Drive speed while slow mode is held
     public static final double TEST_MOTOR_POWER = 0.5;          // Power for single-motor wiring tests
+
+    // Goal alignment constants (teleop, both bumpers held) - starting values, not yet tuned on the robot
+    public static final double ALIGN_KP = 0.02;                 // Turn power per degree of Limelight tx error
+    public static final double ALIGN_MAX_TURN_POWER = 0.4;      // Cap on turn power while aligning
+    public static final double ALIGN_MIN_TURN_POWER = 0.05;     // Minimum turn power to overcome friction outside tolerance
+    public static final double ALIGN_TOLERANCE_DEG = 1.5;       // tx within this is considered aligned
 
     // Test autonomous constants (LinearAuto, CurveAuto)
     public static final double TEST_PATH_SPEED = 0.5;           // Max path speed for simple test paths

@@ -30,13 +30,13 @@ public class LaunchTestTeleOp extends OpMode {
     protected DcMotorEx launch2;      // Right launcher motor
 
     protected boolean launcherOn = false;  // Tracks whether launcher motors are on
-    protected boolean triggerActive = false;  // Tracks whether right trigger is controlling speed
-
+    protected boolean leftTriggerActive = false;// Tracks whether right trigger is controlling speed
+    protected boolean rightTriggerActive = false;
     @Override
     public void init() {
         // Initialize hardware components
-        launch1 = hardwareMap.get(DcMotorEx.class, "launchleft");
-        launch2 = hardwareMap.get(DcMotorEx.class, "launchright");
+        launch1 = hardwareMap.get(DcMotorEx.class, "launchpollen");
+        launch2 = hardwareMap.get(DcMotorEx.class, "launchnectar");
 
         // Configure launcher motors for encoder-based velocity control
         launch1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -67,37 +67,37 @@ public class LaunchTestTeleOp extends OpMode {
         // Toggle launcher motors with Y button
         if (gamepad1.yWasPressed()) {
             launcherOn = !launcherOn;
-            if (launcherOn) {
+            if (launcherOn && gamepad1.aWasPressed()) {
                 launch1.setVelocity(RobotConstants.LAUNCH_TEST_SPEED_1);
+                telemetry.addData("Status", "Pollen Launcher motors ON");
+            } else if (launcherOn && gamepad1.bWasPressed()){
                 launch2.setVelocity(RobotConstants.LAUNCH_TEST_SPEED_1);
-                telemetry.addData("Status", "Launcher motors ON");
-            } else {
-                launch1.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
-                launch2.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
-                telemetry.addData("Status", "Launcher motors OFF");
+                telemetry.addData("Status", "Nectar Launcher motors ON");
             }
         }
 
-        // Select launcher speed with X, A or B
-        if (gamepad1.xWasPressed()) {
-            setLaunchSpeed(RobotConstants.LAUNCH_TEST_SPEED_1);
-        } else if (gamepad1.aWasPressed()) {
-            setLaunchSpeed(RobotConstants.LAUNCH_TEST_SPEED_2);
-        } else if (gamepad1.bWasPressed()) {
-            setLaunchSpeed(RobotConstants.LAUNCH_TEST_SPEED_3);
-        }
 
         // Right trigger sets launcher speed proportionally (0 to RobotConstants.LAUNCHER_MAX_SPEED)
-        if (gamepad1.right_trigger > RobotConstants.TRIGGER_DEADBAND) {
-            triggerActive = true;
-            setLaunchSpeed((int) (gamepad1.right_trigger * RobotConstants.LAUNCHER_MAX_SPEED));
-        } else if (triggerActive) {
+        if (gamepad1.left_trigger > RobotConstants.TRIGGER_DEADBAND) {
+            leftTriggerActive = true;
+            setPollenLaunchSpeed((int) (gamepad1.left_trigger * RobotConstants.LAUNCHER_MAX_SPEED));
+        } else if (leftTriggerActive) {
             // Trigger released - stop launcher
-            triggerActive = false;
+            leftTriggerActive = false;
             launcherOn = false;
             launch1.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
+            telemetry.addData("Status", "Left Trigger released - Launcher motors OFF");
+        }
+
+        if (gamepad1.right_trigger > RobotConstants.TRIGGER_DEADBAND) {
+            rightTriggerActive = true;
+            setNectarLaunchSpeed((int) (gamepad1.right_trigger * RobotConstants.LAUNCHER_MAX_SPEED));
+        } else if (rightTriggerActive) {
+            // Trigger released - stop launcher
+            rightTriggerActive = false;
+            launcherOn = false;
             launch2.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
-            telemetry.addData("Status", "Trigger released - Launcher motors OFF");
+            telemetry.addData("Status", "Right Trigger released - Launcher motors OFF");
         }
 
         // Update telemetry
@@ -121,11 +121,16 @@ public class LaunchTestTeleOp extends OpMode {
     /**
      * Run both launcher motors at the given velocity
      */
-    protected void setLaunchSpeed(int speed) {
+    protected void setPollenLaunchSpeed(int speed) {
         launcherOn = true;
         launch1.setVelocity(speed);
+        telemetry.addData("Status", String.format("Pollen Launcher set to %d ticks/sec", speed));
+    }
+
+    protected void setNectarLaunchSpeed(int speed) {
+        launcherOn = true;
         launch2.setVelocity(speed);
-        telemetry.addData("Status", String.format("Launcher set to %d ticks/sec", speed));
+        telemetry.addData("Status", String.format("Nectar Launcher set to %d ticks/sec", speed));
     }
 
     /**
