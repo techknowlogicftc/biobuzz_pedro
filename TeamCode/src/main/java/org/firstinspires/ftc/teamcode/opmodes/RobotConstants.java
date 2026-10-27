@@ -32,6 +32,14 @@ public class RobotConstants {
     public static final double MIN_RELOCALIZATION_DISTANCE_MM = 10.0;  // Ignore tiny corrections < 10mm
     public static final long CAMERA_DATA_MAX_STALENESS_MS = 100;  // Reject camera data older than 100ms
     public static final int BLUE_GOAL_APRILTAG_ID = 20;  // Blue alliance goal AprilTag ID
+
+    public static final String RED_GOAL_APRILTAGS_AF = "36,37,38,39";
+    public static final String RED_GOAL_APRILTAGS_SF = "32,33,34,35";
+
+    public static final String BLUE_GOAL_APRILTAGS_AF = "40,41,42,43";
+    public static final String BLUE_GOAL_APRILTAGS_SF = "44,45,46,47";
+
+
     public static final int RED_GOAL_APRILTAG_ID = 24;  // Red alliance goal AprilTag ID
 
     // Servo constants
@@ -55,12 +63,13 @@ public class RobotConstants {
     public static final long BALL_TRAVEL_DELAY_MS = 800;        // Time for ball to travel from kicker to launcher area
     
     // Launcher velocity constants (ticks per second)
-    public static final int NEAR_LAUNCH_SPEED = 1500;         // Full speed for normal launch (teleop)
-    public static final int FAR_LAUNCH_SPEED = 1800;         // High speed for small triangle launch (teleop)
+    public static final int NEAR_LAUNCH_SPEED = 1000;         // Full speed for normal launch (teleop)
+    public static final int FAR_LAUNCH_SPEED = 1200;         // High speed for small triangle launch (teleop)
     public static final int LAUNCHER_DUMMY_SPEED = 1000;        // Half speed for dummy launch
     public static final int LAUNCHER_STOP_SPEED = 0;            // Stop speed
     public static final int LAUNCHER_MAX_SPEED = 3000;          // Max speed for variable (trigger) control
     public static final double LAUNCHER_TICKS_PER_REV = 28;     // Encoder ticks per motor revolution
+    public static final int LAUNCHER_SPEED_STEP = 50;           // Bumper speed adjustment per press (teleop)
 
     // Launcher test speeds (ticks per second) - X / A / B buttons in LaunchTestTeleOp
     public static final int LAUNCH_TEST_SPEED_1 = 300;
@@ -68,10 +77,12 @@ public class RobotConstants {
     public static final int LAUNCH_TEST_SPEED_3 = 2500;
 
     // Intake velocity constants (ticks per second) - starting values, not yet tuned on the robot
-    public static final int INTAKE_SPEED = 150;                // Pull game pieces in
-    public static final int OUTTAKE_SPEED = -150;              // Push game pieces back out
-    public static final int MAX_INTAKE_SPEED = 300;            // Max speed for variable (trigger) control
+    public static final int INTAKE_SPEED = 800;                // Pull game pieces in
+    public static final int OUTTAKE_SPEED = -600;              // Push game pieces back out
+    public static final int MAX_INTAKE_SPEED = 1200;            // Max speed for variable (trigger) control
     public static final int INTAKE_STOP_SPEED = 0;              // Stop speed
+    public static final int INTAKE_SPEED_STEP = 25;             // Bumper speed adjustment per press (teleop)
+    public static final int INTAKE_ADJUST_MAX_SPEED = 2000;     // Cap for bumper speed adjustment (teleop)
 
     // Driver control constants (for teleop)
     public static final double STICK_DEADZONE = 0.1;            // Ignore joystick values below this

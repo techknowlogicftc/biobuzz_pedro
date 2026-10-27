@@ -19,9 +19,11 @@ package org.firstinspires.ftc.teamcode.opmodes.teleop;
  * - Right trigger: Slow mode (RobotConstants.SLOW_MODE_MULTIPLIER)
  * - Left + right bumper (hold): Turn to face the alliance goal AprilTag (left stick still drives)
  * - X button: Toggle pollen launcher (on at RobotConstants.NEAR_LAUNCH_SPEED, press again to stop)
- * - Left bumper: Switch running pollen launcher to RobotConstants.FAR_LAUNCH_SPEED
  * - Y button: Toggle nectar launcher (on at RobotConstants.NEAR_LAUNCH_SPEED, press again to stop)
- * - Right bumper: Switch running nectar launcher to RobotConstants.FAR_LAUNCH_SPEED
+ * - Right bumper: Add RobotConstants.LAUNCHER_SPEED_STEP to every running launcher
+ *   and RobotConstants.INTAKE_SPEED_STEP to the intake/outtake if it is running
+ * - Left bumper: Subtract RobotConstants.LAUNCHER_SPEED_STEP from every running launcher
+ *   and RobotConstants.INTAKE_SPEED_STEP from the intake/outtake if it is running
  * - A button: Toggle intake (press again to stop)
  * - B button: Toggle outtake (press again to stop)
  *
@@ -29,6 +31,7 @@ package org.firstinspires.ftc.teamcode.opmodes.teleop;
  * - getAllianceConfig(): Provide alliance-specific configuration (Blue/Red)
  */
 
+import com.pedropathing.drivetrain.DrivePowers;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -53,8 +56,10 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
 
     // Control states
     protected boolean slowMode = false;             // Tracks whether slow mode is held
+    protected DrivePowers lastDrivePowers = DrivePowers.zero();  // Last powers sent to the follower (for telemetry)
     protected boolean aligning = false;             // Tracks whether goal alignment is active (both bumpers held)
     protected boolean aligned = false;              // Tracks whether the robot is facing the goal tag
+    protected int speedSteps = 0;                   // Bumper speed adjustment this loop: +1 faster, -1 slower, 0 none
 
     /**
      * Abstract method that subclasses must implement to provide alliance-specific configuration
@@ -91,6 +96,9 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
 
             // MANUAL DRIVE CONTROL (GAMEPAD1)
             handleManualControl();
+
+            // BUMPER SPEED ADJUSTMENT (GAMEPAD1) - shared by launcher and intake
+            readSpeedAdjustButtons();
 
             // LAUNCHER CONTROL (GAMEPAD1)
             handleLauncherControl();
@@ -164,7 +172,8 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
         }
 
         // Robot centric - robot moves relative to its current orientation
-        follower.manual(forward, strafe, turn);
+        lastDrivePowers = new DrivePowers(forward, strafe, turn);
+        follower.manual(lastDrivePowers);
     }
 
     /**
@@ -194,36 +203,62 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
     }*/
 
     /**
+     * Reads the bumper edges once per loop so the launcher and intake both see the same press
+     */
+    protected void readSpeedAdjustButtons() {
+        boolean leftBumperPressed = gamepad1.leftBumperWasPressed();
+        boolean rightBumperPressed = gamepad1.rightBumperWasPressed();
+
+        // Right bumper = faster, left bumper = slower (both pressed together cancel out)
+        speedSteps = 0;
+        if (rightBumperPressed) {
+            speedSteps++;
+        }
+        if (leftBumperPressed) {
+            speedSteps--;
+        }
+    }
+
+    /**
      * Handles launcher control
      */
     protected void handleLauncherControl() {
         // Read every edge each loop so a stale press is never picked up later
         boolean xPressed = gamepad1.xWasPressed();
         boolean yPressed = gamepad1.yWasPressed();
-        boolean leftBumperPressed = gamepad1.leftBumperWasPressed();
-        boolean rightBumperPressed = gamepad1.rightBumperWasPressed();
 
-        // Pollen launcher: X toggles on (near speed) / off; left bumper switches a running pollen launcher to far speed
+        int speedChange = speedSteps * RobotConstants.LAUNCHER_SPEED_STEP;
+
+        // Pollen launcher: X toggles on (near speed) / off; bumpers adjust speed while it is on
         if (xPressed) {
             if (launcher.isPollenOn()) {
                 launcher.stopPollen();
             } else {
                 launcher.setPollenSpeed(RobotConstants.NEAR_LAUNCH_SPEED);
             }
-        } else if (leftBumperPressed && launcher.isPollenOn()) {
-            launcher.setPollenSpeed(RobotConstants.FAR_LAUNCH_SPEED);
+        } else if (speedChange != 0 && launcher.isPollenOn()) {
+            launcher.setPollenSpeed(adjustLauncherSpeed(launcher.getPollenTargetSpeed(), speedChange));
         }
 
-        // Nectar launcher: Y toggles on (near speed) / off; right bumper switches a running nectar launcher to far speed
+        // Nectar launcher: Y toggles on (near speed) / off; bumpers adjust speed while it is on
         if (yPressed) {
             if (launcher.isNectarOn()) {
                 launcher.stopNectar();
             } else {
                 launcher.setNectarSpeed(RobotConstants.NEAR_LAUNCH_SPEED);
             }
-        } else if (rightBumperPressed && launcher.isNectarOn()) {
-            launcher.setNectarSpeed(RobotConstants.FAR_LAUNCH_SPEED);
+        } else if (speedChange != 0 && launcher.isNectarOn()) {
+            launcher.setNectarSpeed(adjustLauncherSpeed(launcher.getNectarTargetSpeed(), speedChange));
         }
+    }
+
+    /**
+     * Adds speedChange to a running launcher's target speed, kept between one step and RobotConstants.LAUNCHER_MAX_SPEED
+     * (never reaches 0, so slowing down never turns the launcher off - use X / Y for that)
+     */
+    protected int adjustLauncherSpeed(int currentSpeed, int speedChange) {
+        int newSpeed = currentSpeed + speedChange;
+        return Math.max(RobotConstants.LAUNCHER_SPEED_STEP, Math.min(RobotConstants.LAUNCHER_MAX_SPEED, newSpeed));
     }
 
     /**
@@ -234,21 +269,38 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
         boolean aPressed = gamepad1.aWasPressed();
         boolean bPressed = gamepad1.bWasPressed();
 
+        // Direction comes from the sign, since bumpers can move the speed off the default values
+        int currentSpeed = intake.getTargetSpeed();
+
         // A toggles intake on/off; switches straight from outtake to intake if outtake is running
         if (aPressed) {
-            if (intake.getTargetSpeed() == RobotConstants.INTAKE_SPEED) {
+            if (currentSpeed > 0) {
                 intake.stop();
             } else {
                 intake.intake();
             }
         } else if (bPressed) {
             // B toggles outtake on/off; switches straight from intake to outtake if intake is running
-            if (intake.getTargetSpeed() == RobotConstants.OUTTAKE_SPEED) {
+            if (currentSpeed < 0) {
                 intake.stop();
             } else {
                 intake.outtake();
             }
+        } else if (speedSteps != 0 && intake.isOn()) {
+            // Bumpers adjust speed while intake or outtake is running
+            intake.setSpeed(adjustIntakeSpeed(currentSpeed, speedSteps * RobotConstants.INTAKE_SPEED_STEP));
         }
+    }
+
+    /**
+     * Adds speedChange to the running intake's speed magnitude, keeping its direction (intake or outtake).
+     * Kept between one step and RobotConstants.INTAKE_ADJUST_MAX_SPEED (never reaches 0, so slowing down
+     * never turns the intake off - use A / B for that)
+     */
+    protected int adjustIntakeSpeed(int currentSpeed, int speedChange) {
+        int newMagnitude = Math.abs(currentSpeed) + speedChange;
+        newMagnitude = Math.max(RobotConstants.INTAKE_SPEED_STEP, Math.min(RobotConstants.INTAKE_ADJUST_MAX_SPEED, newMagnitude));
+        return currentSpeed < 0 ? -newMagnitude : newMagnitude;
     }
 
     /**
@@ -260,6 +312,10 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
         telemetry.addData("Current Position", String.format("(%.1f, %.1f)", currentPose.x(), currentPose.y()));
         telemetry.addData("Current Heading", String.format("%.1f°", normalizeAngleTo360(Math.toDegrees(currentPose.heading()))));
         telemetry.addData("Slow Mode", slowMode ? "ACTIVE" : "OFF");
+        telemetry.addData("Drive Powers", String.format("fwd:%.2f str:%.2f turn:%.2f",
+            lastDrivePowers.forward(), lastDrivePowers.strafe(), lastDrivePowers.turn()));
+        telemetry.addData("Raw Sticks", String.format("LX:%.2f LY:%.2f RX:%.2f",
+            gamepad1.left_stick_x, gamepad1.left_stick_y, gamepad1.right_stick_x));
         //telemetry.addData("Goal Align", !aligning ? "OFF" : (!limelight.hasTarget() ? "NO TAG" : (aligned ? "ALIGNED" : "TURNING")));
 
         // Launcher status (each motor is controlled separately)
@@ -271,7 +327,7 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
         // Intake status
         int intakeSpeed = intake.getTargetSpeed();
         telemetry.addData("Intake", intakeSpeed == RobotConstants.INTAKE_STOP_SPEED ? "OFF" :
-            (intakeSpeed == RobotConstants.OUTTAKE_SPEED ? "REVERSE" : "ON"));
+            String.format("%s (%d)", intakeSpeed < 0 ? "REVERSE" : "ON", intakeSpeed));
         telemetry.addData("Intake Velocity", String.format("%.0f ticks/sec", intake.getVelocity()));
 
         // Limelight status
@@ -281,9 +337,10 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
             telemetry.addData("Goal tx", String.format("%.1f°", limelight.getTx()));
         }*/
 
-        telemetry.addData("Gamepad1 Controls", String.format("X=Pollen Near(%d)/Stop, LB=Pollen Far(%d), Y=Nectar Near/Stop, RB=Nectar Far, RT=Slow, LB+RB=Align",
-            RobotConstants.NEAR_LAUNCH_SPEED, RobotConstants.FAR_LAUNCH_SPEED));
-        telemetry.addData("Intake Controls", "A=Intake On/Off, B=Outtake On/Off");
+        telemetry.addData("Gamepad1 Controls", String.format("X=Pollen On(%d)/Off, Y=Nectar On/Off, RB=+%d, LB=-%d, RT=Slow, LB+RB=Align",
+            RobotConstants.NEAR_LAUNCH_SPEED, RobotConstants.LAUNCHER_SPEED_STEP, RobotConstants.LAUNCHER_SPEED_STEP));
+        telemetry.addData("Intake Controls", String.format("A=Intake On/Off, B=Outtake On/Off, RB=+%d, LB=-%d",
+            RobotConstants.INTAKE_SPEED_STEP, RobotConstants.INTAKE_SPEED_STEP));
         telemetry.update();
     }
 

@@ -11,18 +11,18 @@ import com.pedropathing.math.Pose;
  */
 public class AllianceConfig {
     private final boolean isBlueAlliance;
-    private final int targetAprilTagId;
+    private final String targetAprilTagIds;
     private final String allianceName;
 
     /**
      * Constructor for alliance configuration
      * @param isBlueAlliance true for Blue alliance, false for Red alliance
-     * @param targetAprilTagId AprilTag ID to track for relocalization
+     * @param targetAprilTagIds AprilTag ID to track for relocalization
      * @param allianceName Name of the alliance (for display purposes)
      */
-    private AllianceConfig(boolean isBlueAlliance, int targetAprilTagId, String allianceName) {
+    private AllianceConfig(boolean isBlueAlliance, String targetAprilTagIds, String allianceName) {
         this.isBlueAlliance = isBlueAlliance;
-        this.targetAprilTagId = targetAprilTagId;
+        this.targetAprilTagIds = targetAprilTagIds;
         this.allianceName = allianceName;
     }
 
@@ -61,8 +61,8 @@ public class AllianceConfig {
         return target.getLauncherSpeed();
     }
 
-    public int getTargetAprilTagId() {
-        return targetAprilTagId;
+    public String getTargetAprilTagId() {
+        return targetAprilTagIds;
     }
 
     public String getAllianceName() {
@@ -79,8 +79,16 @@ public class AllianceConfig {
     public static AllianceConfig createBlueAllianceConfig() {
         return new AllianceConfig(
             true,   // isBlueAlliance
-            RobotConstants.BLUE_GOAL_APRILTAG_ID,     // AprilTag ID
+            RobotConstants.BLUE_GOAL_APRILTAGS_AF,     // AprilTag ID
             "Blue"  // Alliance name
+        );
+    }
+
+    public static AllianceConfig createBlueAllianceConfigSF() {
+        return new AllianceConfig(
+                true,   // isBlueAlliance
+                RobotConstants.BLUE_GOAL_APRILTAGS_SF,     // AprilTag ID
+                "Blue"  // Alliance name
         );
     }
 
@@ -90,8 +98,15 @@ public class AllianceConfig {
     public static AllianceConfig createRedAllianceConfig() {
         return new AllianceConfig(
             false,  // isBlueAlliance
-            RobotConstants.RED_GOAL_APRILTAG_ID,     // AprilTag ID
+            RobotConstants.RED_GOAL_APRILTAGS_AF,     // AprilTag ID
             "Red"   // Alliance name
+        );
+    }
+    public static AllianceConfig createRedAllianceConfigSF() {
+        return new AllianceConfig(
+                false,  // isBlueAlliance
+                RobotConstants.RED_GOAL_APRILTAGS_SF,     // AprilTag ID
+                "Red"   // Alliance name
         );
     }
 }

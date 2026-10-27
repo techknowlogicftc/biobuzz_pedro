@@ -14,18 +14,18 @@ public class MecanumDrive {
     private DcMotor frontLeft, frontRight, rearLeft, rearRight;
 
     public void init(HardwareMap hwMap) {
-        frontLeft = hwMap.get(DcMotor.class, "frontleft");
-        frontRight = hwMap.get(DcMotor.class, "frontright");
-        rearLeft = hwMap.get(DcMotor.class, "rearleft1");
-        rearRight = hwMap.get(DcMotor.class, "rearright");
+        frontLeft = hwMap.get(DcMotor.class, "leftFront");
+        frontRight = hwMap.get(DcMotor.class, "rightFront");
+        rearLeft = hwMap.get(DcMotor.class, "leftBack");
+        rearRight = hwMap.get(DcMotor.class, "rightBack");
 
         // Right side motors are reversed so positive power = forward on all wheels.
         // (Reversing the left side instead made the robot spin in place on forward.)
         // If the robot drives backward when the stick is pushed forward, flip all four.
         frontLeft.setDirection(DcMotorSimple.Direction.FORWARD);
         rearLeft.setDirection(DcMotorSimple.Direction.FORWARD);
-        frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
-        rearRight.setDirection(DcMotorSimple.Direction.FORWARD);
+        frontRight.setDirection(DcMotorSimple.Direction.REVERSE);
+        rearRight.setDirection(DcMotorSimple.Direction.REVERSE);
 
         for (DcMotor motor : new DcMotor[]{frontLeft, frontRight, rearLeft, rearRight}) {
             // Direct power, no encoder feedback - motors with missing/loose encoder cables would stall in RUN_USING_ENCODER

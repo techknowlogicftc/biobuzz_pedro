@@ -29,9 +29,9 @@ public class CurveAuto extends OpMode {
     // Lower this to move slower.
 
     // Poses
-    private final Pose start = poseFactory.of(57, 9, 90);
-    private final Pose middle = poseFactory.of(24, 48, 135);
-    private final Pose end = poseFactory.of(12, 96, 90);
+    private final Pose start = poseFactory.of(9, 63, 0);
+    private final Pose middle = poseFactory.of(24, 48, 90);
+    private final Pose end = poseFactory.of(12, 91, 90);
 
 
     private Path park(){
@@ -60,6 +60,15 @@ public class CurveAuto extends OpMode {
     }
 
     @Override
+    public void init_loop() {
+        // Keep odometry running during init so the pose can be checked before pressing start
+        follower.update();
+
+        telemetry.addData("Status", "Initialized - Waiting for start");
+        displayPose();
+    }
+
+    @Override
     public void start() {
         schedule(autoRoutine());
     }
@@ -70,6 +79,13 @@ public class CurveAuto extends OpMode {
         Scheduler.execute();
         // add your other methods needed in the loop here
 
+        displayPose();
+    }
+
+    /**
+     * Shows the robot's current pose and follower mode (used in both init and auton)
+     */
+    private void displayPose() {
         telemetry.addData("X", follower.pose().x());
         telemetry.addData("Y", follower.pose().y());
         telemetry.addData("Heading", Math.toDegrees(follower.pose().heading()));
