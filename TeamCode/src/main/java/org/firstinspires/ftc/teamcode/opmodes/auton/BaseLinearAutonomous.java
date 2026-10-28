@@ -20,12 +20,23 @@ package org.firstinspires.ftc.teamcode.opmodes.auton;
 
 import static com.pedropathing.api.Paths.line;
 
+import com.pedropathing.api.Paths;
+import com.pedropathing.api.PoseFactory;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.math.Pose;
 import com.pedropathing.paths.Path;
+
+import static com.pedropathing.api.Paths.line;
+import static com.pedropathing.ivy.Scheduler.schedule;
+import static com.pedropathing.ivy.pedro.PedroCommands.follow;
+
+
+import com.pedropathing.paths.interpolator.Interpolator;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.mechanisms.IntakeUtil;
+import org.firstinspires.ftc.teamcode.mechanisms.LauncherUtil;
 import org.firstinspires.ftc.teamcode.opmodes.AllianceConfig;
 import org.firstinspires.ftc.teamcode.opmodes.LaunchTarget;
 import org.firstinspires.ftc.teamcode.opmodes.PoseHolder;
@@ -40,7 +51,9 @@ import java.util.Map;
 public abstract class BaseLinearAutonomous extends LinearOpMode {
     // Hardware components
     protected Follower follower;                    // Main robot movement controller
-
+    protected final PoseFactory poseFactory = PoseFactory.degrees();
+    protected LauncherUtil launcher;
+    protected IntakeUtil intake;
     // Alliance-specific configuration
     protected AllianceConfig allianceConfig;
 
@@ -55,13 +68,18 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
     protected ElapsedTime stateTimer = new ElapsedTime();       // Tracks individual state duration (reset on state change)
     protected ElapsedTime pathTimer = new ElapsedTime();
 
-    // Speed for autonomous navigation, as a fraction of the robot's max achievable velocity (1.0 = full speed)
-    protected static final double AUTONOMOUS_SPEED_MULTIPLIER = RobotConstants.AUTON_SPEED_MULTIPLIER;
-
     // Autonomous states
     protected enum AutonomousState {
         MOVE_TO_TARGET,                 // Parameterized: drive to "target" at autonomous speed
         MOVE_TO_TARGET_SLOW,            // Parameterized: drive to "target" at INTAKE_MOVEMENT_SPEED
+        START_POLLEN_LAUNCHER,
+        STOP_POLLEN_LAUNCHER,
+        START_NECTAR_LAUNCHER,
+        STOP_NECTAR_LAUNCHER,
+        OPEN_POLLEN_SERVO,
+        OPEN_NECTAR_SERVO,
+        CLOSE_POLLEN_SERVO,
+        CLOSE_NECTAR_SERVO,
         WAIT,                           // Parameterized: pause for "ms" milliseconds
         RETURN_HOME,                    // Return to auton end position
         COMPLETE                        // Autonomous sequence complete
@@ -121,6 +139,8 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
      * @return AllianceConfig object with alliance-specific constants
      */
     protected abstract AllianceConfig getAllianceConfig();
+
+    protected abstract Path park();
 
     /**
      * Overridable method for subclasses to configure the autonomous timeout
@@ -259,8 +279,13 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
         follower = Constants.create(hardwareMap);
         follower.setPose(allianceConfig.getInitPose());
         follower.update();
-    }
 
+        launcher = new LauncherUtil();
+        launcher.init(hardwareMap);
+
+        intake = new IntakeUtil();
+        intake.init(hardwareMap);
+    }
     /**
      * Main state machine update - called every loop
      */
@@ -281,17 +306,35 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
         }
 
         switch (currentState) {
-            case MOVE_TO_TARGET:
-                handleMoveToTargetState(AUTONOMOUS_SPEED_MULTIPLIER, RobotConstants.PATH_TIMEOUT_MS);
+            case START_POLLEN_LAUNCHER:
+                handlePollenStart();
                 break;
-            case MOVE_TO_TARGET_SLOW:
-                handleMoveToTargetState(RobotConstants.INTAKE_MOVEMENT_SPEED, RobotConstants.INTAKE_PATH_TIMEOUT_MS);
+            case START_NECTAR_LAUNCHER:
+                handleNectarStart();
                 break;
-            case WAIT:
-                handleWaitState();
+            case OPEN_POLLEN_SERVO:
+                handlePollenServo();
+                break;
+            case OPEN_NECTAR_SERVO:
+                handleNectarServo();
+                break;
+            case STOP_POLLEN_LAUNCHER:
+                stopPollenLauncher();
+                break;
+            case STOP_NECTAR_LAUNCHER:
+                stopNectarLauncher();
+                break;
+            case CLOSE_POLLEN_SERVO:
+                closePollenServo();
+                break;
+            case CLOSE_NECTAR_SERVO:
+                closeNectarServo();
                 break;
             case RETURN_HOME:
                 handleMoveToHomeState();
+                break;
+            case WAIT:
+                handleWaitState();
                 break;
             case COMPLETE:
                 break;
@@ -302,6 +345,51 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
             follower.update();
             updateTelemetry();
         }
+    }
+
+    protected void handlePollenStart(){
+        launcher.setPollenSpeed(allianceConfig.getPollenLaunchSpeed());
+        telemetry.addData("Status", "Pollen Launcher started at " + allianceConfig.getPollenLaunchSpeed() + " ticks/sec");
+
+        // Auto-advance to next state in sequence
+        advanceToNextState();
+    }
+
+    protected void handleNectarStart(){
+        launcher.setNectarSpeed(allianceConfig.getNectarLaunchSpeed());
+        telemetry.addData("Status", "Nectar Launcher started at " + allianceConfig.getNectarLaunchSpeed() + " ticks/sec");
+
+        advanceToNextState();
+    }
+
+    protected void handlePollenServo(){
+        telemetry.addData("handlePollenServo", "Pollen Servo not configured yet ");
+        advanceToNextState();
+    }
+
+    protected void handleNectarServo(){
+        telemetry.addData("handleNectarServo", "Nectar Servo not configured yet ");
+        advanceToNextState();
+    }
+
+    protected void stopPollenLauncher(){
+        launcher.stopPollen();
+        advanceToNextState();
+    }
+
+    protected void stopNectarLauncher(){
+        launcher.stopNectar();
+        advanceToNextState();
+    }
+
+    protected void closePollenServo(){
+        telemetry.addData("closePollenServo", "not configured yet");
+        advanceToNextState();
+    }
+
+    protected void closeNectarServo(){
+        telemetry.addData("closeNectarServo", "not configured yet ");
+        advanceToNextState();
     }
 
     /**
@@ -361,7 +449,7 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
 
         // Start path following if not already started
         if (!pathStarted) {
-            follower.follow(pathTo(targetPose, AUTONOMOUS_SPEED_MULTIPLIER));
+            follower.follow(park());
             pathStarted = true;
             pathTimer.reset();
             telemetry.addData("Status", "Starting path to home position...");
@@ -381,6 +469,8 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
             telemetry.addData("Status", "Reached home position - Complete...");
         }
     }
+
+
 
     /**
      * Straight-line path from the robot's current pose to targetPose.
@@ -417,6 +507,8 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
      * Stop all mechanisms. Override to stop this robot's mechanisms.
      */
     protected void stopAllMotors() {
+        launcher.stop();
+        intake.stop();
     }
 
     /**
@@ -483,4 +575,5 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
         }
         return stateSequence.get(currentStateIndex);
     }
+
 }

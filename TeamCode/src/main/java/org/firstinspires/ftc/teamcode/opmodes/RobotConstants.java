@@ -64,6 +64,12 @@ public class RobotConstants {
     
     // Launcher velocity constants (ticks per second)
     public static final int NEAR_LAUNCH_SPEED = 1000;         // Full speed for normal launch (teleop)
+    public static final int CENTER_POLLEN_LAUNCH_SPEED = 1000;
+    public static final int SIDE_POLLEN_LAUNCH_SPEED = 1000;
+
+    public static final int CENTER_NECTAR_LAUNCH_SPEED = 1000;
+    public static final int SIDE_NECTAR_LAUNCH_SPEED = 1000;
+
     public static final int FAR_LAUNCH_SPEED = 1200;         // High speed for small triangle launch (teleop)
     public static final int LAUNCHER_DUMMY_SPEED = 1000;        // Half speed for dummy launch
     public static final int LAUNCHER_STOP_SPEED = 0;            // Stop speed

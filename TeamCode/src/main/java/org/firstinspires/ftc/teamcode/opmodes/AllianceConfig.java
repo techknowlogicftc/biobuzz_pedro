@@ -14,6 +14,11 @@ public class AllianceConfig {
     private final String targetAprilTagIds;
     private final String allianceName;
 
+    private final int pollenLaunchSpeed;
+
+    private final int nectarLaunchSpeed;
+
+
     /**
      * Constructor for alliance configuration
      * @param isBlueAlliance true for Blue alliance, false for Red alliance
@@ -24,6 +29,16 @@ public class AllianceConfig {
         this.isBlueAlliance = isBlueAlliance;
         this.targetAprilTagIds = targetAprilTagIds;
         this.allianceName = allianceName;
+        this.pollenLaunchSpeed = 0;
+        this.nectarLaunchSpeed = 0;
+    }
+
+    private AllianceConfig(boolean isBlueAlliance, String targetAprilTagIds, String allianceName, int pollenLaunchSpeed, int nectarLaunchSpeed) {
+        this.isBlueAlliance = isBlueAlliance;
+        this.targetAprilTagIds = targetAprilTagIds;
+        this.allianceName = allianceName;
+        this.pollenLaunchSpeed = pollenLaunchSpeed;
+        this.nectarLaunchSpeed = nectarLaunchSpeed;
     }
 
     // Getters that use LaunchTarget enum
@@ -35,33 +50,26 @@ public class AllianceConfig {
         return LaunchTarget.INIT_POSE.getPose(isBlueAlliance);
     }
 
-    public Pose getLaunchPose() {
-        return LaunchTarget.NEAR_LAUNCH.getPose(isBlueAlliance);
+    public int getPollenLaunchSpeed(){
+        return pollenLaunchSpeed;
     }
 
-    public Pose getLaunchPoseFar() {
-        return LaunchTarget.FAR_LAUNCH.getPose(isBlueAlliance);
+    public int getNectarLaunchSpeed() {
+        return nectarLaunchSpeed;
     }
+
 
     public Pose getAutonEndPose() {
         return LaunchTarget.AUTON_END.getPose(isBlueAlliance);
     }
 
-    public Pose getAutonDoNothingEndPose() {
-        return LaunchTarget.AUTON_DO_NOTHING_END.getPose(isBlueAlliance);
-    }
 
     // New method to get pose for any target
     public Pose getTargetPose(LaunchTarget target) {
         return target.getPose(isBlueAlliance);
     }
 
-    // New method to get launcher speed for any target
-    public int getLauncherSpeed(LaunchTarget target) {
-        return target.getLauncherSpeed();
-    }
-
-    public String getTargetAprilTagId() {
+    public String getTargetAprilTagIds() {
         return targetAprilTagIds;
     }
 
@@ -84,29 +92,46 @@ public class AllianceConfig {
         );
     }
 
+    public static AllianceConfig createBlueAllianceConfigAF() {
+        return new AllianceConfig(
+                true,   // isBlueAlliance
+                RobotConstants.BLUE_GOAL_APRILTAGS_AF,     // AprilTag ID
+                "Blue",  // Alliance name
+                RobotConstants.CENTER_POLLEN_LAUNCH_SPEED,
+                RobotConstants.CENTER_NECTAR_LAUNCH_SPEED
+        );
+    }
+
     public static AllianceConfig createBlueAllianceConfigSF() {
         return new AllianceConfig(
                 true,   // isBlueAlliance
                 RobotConstants.BLUE_GOAL_APRILTAGS_SF,     // AprilTag ID
-                "Blue"  // Alliance name
+                "Blue",  // Alliance name
+                RobotConstants.CENTER_POLLEN_LAUNCH_SPEED,
+                RobotConstants.CENTER_NECTAR_LAUNCH_SPEED
         );
     }
 
     /**
      * Creates a Red Alliance configuration
-     */
-    public static AllianceConfig createRedAllianceConfig() {
+   */
+
+    public static AllianceConfig createRedAllianceConfigAF() {
         return new AllianceConfig(
-            false,  // isBlueAlliance
-            RobotConstants.RED_GOAL_APRILTAGS_AF,     // AprilTag ID
-            "Red"   // Alliance name
+                false,  // isBlueAlliance
+                RobotConstants.RED_GOAL_APRILTAGS_AF,     // AprilTag ID
+                "Red" ,  // Alliance name
+                RobotConstants.CENTER_POLLEN_LAUNCH_SPEED,
+                RobotConstants.CENTER_NECTAR_LAUNCH_SPEED
         );
     }
     public static AllianceConfig createRedAllianceConfigSF() {
         return new AllianceConfig(
                 false,  // isBlueAlliance
                 RobotConstants.RED_GOAL_APRILTAGS_SF,     // AprilTag ID
-                "Red"   // Alliance name
+                "Red",   // Alliance name
+                RobotConstants.CENTER_POLLEN_LAUNCH_SPEED,
+                RobotConstants.CENTER_NECTAR_LAUNCH_SPEED
         );
     }
 }
