@@ -230,10 +230,20 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
         // Display ready status
         telemetry.addData("Status", "Ready to start autonomous");
         telemetry.addData("Alliance", allianceConfig.getAllianceName());
-        telemetry.update();
-
+        displayPose();
         // Wait for the game to start (driver presses PLAY)
-        waitForStart();
+        // Init loop (equivalent to init_loop()): keep odometry live so the start pose can be checked
+        while (opModeInInit()) {
+            follower.update();
+
+            Pose pose = follower.pose();
+            telemetry.addData("Status", "Ready to start autonomous");
+            telemetry.addData("Alliance", allianceConfig.getAllianceName());
+            telemetry.addData("State Sequence", "Loaded (" + stateSequence.size() + " states)");
+            telemetry.addData("Pose", String.format("(%.1f, %.1f, %.1f°)",
+                pose.x(), pose.y(), Math.toDegrees(pose.heading())));
+            telemetry.update();
+        }
 
         // START PHASE (equivalent to start())
         if (isStopRequested()) return;
@@ -251,7 +261,7 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
         // MAIN LOOP PHASE (equivalent to loop())
         while (opModeIsActive() && currentState != AutonomousState.COMPLETE) {
             updateAutonomous();
-            telemetry.update();
+            displayPose();
         }
 
         // Final cleanup (when COMPLETE or opMode stopped)
@@ -574,6 +584,14 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
             return null;
         }
         return stateSequence.get(currentStateIndex);
+    }
+
+    private void displayPose() {
+        telemetry.addData("X", follower.pose().x());
+        telemetry.addData("Y", follower.pose().y());
+        telemetry.addData("Heading", Math.toDegrees(follower.pose().heading()));
+        telemetry.addData("Follower Mode", follower.mode());
+        telemetry.update();
     }
 
 }

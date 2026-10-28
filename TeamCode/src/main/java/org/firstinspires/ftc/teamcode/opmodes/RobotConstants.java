@@ -52,6 +52,12 @@ public class RobotConstants {
     public static final double LAUNCHER_VELOCITY_TOLERANCE_LOWER = 0.03;  // 3% tolerance below target for launcher speed check
     public static final double LAUNCHER_VELOCITY_TOLERANCE_UPPER = 0.05;  // 5% tolerance above target for launcher speed check
     
+    // Launcher gate servo positions (0..1) - starting values, not yet tuned on the robot
+    public static final double POLLEN_SERVO_OPEN_POSITION = 0.5;    // Pollen gate open (feeds launcher)
+    public static final double POLLEN_SERVO_CLOSED_POSITION = 0.0;  // Pollen gate closed
+    public static final double NECTAR_SERVO_OPEN_POSITION = 0.5;    // Nectar gate open (feeds launcher)
+    public static final double NECTAR_SERVO_CLOSED_POSITION = 0.0;  // Nectar gate closed
+
     // Ball kicker servo positions
     public static final double SLOT1_STARTING_POSITION = 0.44;  // Slot 1 kicker rest position
     public static final double SLOT1_ENDING_POSITION = 0.550;     // Slot 1 kicker extended position
@@ -89,6 +95,12 @@ public class RobotConstants {
     public static final int INTAKE_STOP_SPEED = 0;              // Stop speed
     public static final int INTAKE_SPEED_STEP = 25;             // Bumper speed adjustment per press (teleop)
     public static final int INTAKE_ADJUST_MAX_SPEED = 2000;     // Cap for bumper speed adjustment (teleop)
+
+    // Lift velocity constants (ticks per second) - starting values, not yet tuned on the robot
+    public static final int LIFT_UP_SPEED = 800;                // Raise the lift
+    public static final int LIFT_DOWN_SPEED = -600;             // Lower the lift
+    public static final int MAX_LIFT_SPEED = 1200;              // Max speed for variable (joystick) control
+    public static final int LIFT_STOP_SPEED = 0;                // Stop speed
 
     // Driver control constants (for teleop)
     public static final double STICK_DEADZONE = 0.1;            // Ignore joystick values below this
