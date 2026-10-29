@@ -62,6 +62,9 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
 
     // Path following state tracking
     protected boolean pathStarted = false;          // Reset whenever a state advances
+    protected boolean homeTurnDone = false;         // RETURN_HOME: true once the turn-in-place to the park heading is done
+    protected Path homePath;                        // RETURN_HOME: park path, built once when RETURN_HOME starts
+    protected Pose homeTurnPose;                    // RETURN_HOME: current x/y with the heading the park path starts with
 
     // Timing control
     protected ElapsedTime autonomousTimer = new ElapsedTime();  // Tracks total autonomous runtime (never reset)
@@ -140,7 +143,27 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
      */
     protected abstract AllianceConfig getAllianceConfig();
 
-    protected abstract Path park();
+    /**
+     * Path driven in RETURN_HOME. Built from the robot's current pose when RETURN_HOME starts; the robot
+     * first turns in place to the path's starting heading, then follows it.
+     *
+     * Default: curve around the hive from the start in front of it (along a top/bottom wall) to the
+     * auton end pose (along a side wall). The curve bows toward the corner at (end x, start y), away
+     * from the hive (~31" from the hive center for a start of (55, 9) Red / (89, 135) Blue).
+     *
+     * The robot faces along the curve (tangent heading), so it turns left in place to face the corner,
+     * then drives forward and finishes facing straight along the side wall - the park heading -
+     * because the corner is in line with the end point. Override for a custom park.
+     */
+    protected Path park() {
+        Pose start = follower.pose();
+        Pose end = allianceConfig.getAutonEndPose();
+        Pose corner = new Pose(end.x(), start.y(), 0);  // Bezier control point; its heading is unused
+
+        return Paths.curve(start, corner, end)
+                .tangent()
+                .with(Constants.foresightConfig.maxPathSpeed.at(RobotConstants.TEST_PATH_SPEED));
+    }
 
     /**
      * Overridable method for subclasses to configure the autonomous timeout
@@ -310,6 +333,7 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
 
                 // Reset path flag and transition to return home
                 pathStarted = false;
+                homeTurnDone = false;
                 currentState = AutonomousState.RETURN_HOME;
                 stateTimer.reset();  // Reset for the return home sequence
             }
@@ -457,16 +481,36 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
     protected void handleMoveToHomeState() {
         Pose targetPose = allianceConfig.getAutonEndPose();
 
-        // Start path following if not already started
+        // Step 1: turn in place to the heading the park path starts with (hold current x/y with that heading),
+        // so the robot then drives along the path instead of strafing while it turns
+        if (!homeTurnDone) {
+            if (!pathStarted) {
+                homePath = park();
+                Pose currentPose = follower.pose();
+                homeTurnPose = new Pose(currentPose.x(), currentPose.y(), homePath.heading(0));
+                follower.hold(homeTurnPose);
+                pathStarted = true;
+                pathTimer.reset();
+                telemetry.addData("Status", "Turning to park heading...");
+            }
+
+            if (isAtTargetHeading(homeTurnPose) || pathTimer.milliseconds() >= RobotConstants.TURN_TIMEOUT_MS) {
+                homeTurnDone = true;
+                pathStarted = false;  // Step 2 starts its own path
+            }
+            return;
+        }
+
+        // Step 2: drive to park. Start path following if not already started
         if (!pathStarted) {
-            follower.follow(park());
+            follower.follow(homePath);
             pathStarted = true;
             pathTimer.reset();
             telemetry.addData("Status", "Starting path to home position...");
         }
 
         // Check for path timeout
-        boolean pathTimedOut = pathTimer.milliseconds() >= RobotConstants.PATH_TIMEOUT_MS;
+        boolean pathTimedOut = pathTimer.milliseconds() >= RobotConstants.PARK_PATH_TIMEOUT_MS;
         if (pathTimedOut) {
             telemetry.addData("WARNING", "Path to home timed out!");
         }
@@ -565,6 +609,7 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
         }
 
         pathStarted = false;  // Next state starts its own path
+        homeTurnDone = false;
         currentStateIndex++;
         if (currentStateIndex < stateSequence.size()) {
             currentState = stateSequence.get(currentStateIndex).getState();

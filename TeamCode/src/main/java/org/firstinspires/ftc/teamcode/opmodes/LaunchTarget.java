@@ -38,7 +38,7 @@ public enum LaunchTarget {
     ),
     // Autonomous end positions (no launcher)
     AUTON_END(
-        new Pose(135, 81, Math.toRadians(180)),          // Blue alliance pose
+        new Pose(132, 48, Math.toRadians(270)),          // Blue alliance pose
         new Pose(12, 91, Math.toRadians(90)),        // Red alliance pose
         0                                                // No launcher
     ),
@@ -52,7 +52,7 @@ public enum LaunchTarget {
 
     INIT_POSE(
         new Pose(135, 81, Math.toRadians(180)),         // Blue alliance init position
-        new Pose(9, 63, Math.toRadians(0)),       // Red alliance init position
+        new Pose(9, 63, Math.toRadians(0)),      // Red alliance init position (next to the flower in red zone)
         0                                                // No launcher
     );
 

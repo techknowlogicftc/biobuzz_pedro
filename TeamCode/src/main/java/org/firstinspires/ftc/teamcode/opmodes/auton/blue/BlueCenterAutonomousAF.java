@@ -1,16 +1,9 @@
 package org.firstinspires.ftc.teamcode.opmodes.auton.blue;
 
-import com.pedropathing.api.Paths;
-import com.pedropathing.math.Pose;
-import com.pedropathing.paths.Path;
-import com.pedropathing.paths.interpolator.Interpolator;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 import org.firstinspires.ftc.teamcode.opmodes.AllianceConfig;
-import org.firstinspires.ftc.teamcode.opmodes.LaunchTarget;
-import org.firstinspires.ftc.teamcode.opmodes.RobotConstants;
 import org.firstinspires.ftc.teamcode.opmodes.auton.BaseLinearAutonomous;
-import org.firstinspires.ftc.teamcode.pedro.Constants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,20 +49,5 @@ public class BlueCenterAutonomousAF extends BaseLinearAutonomous {
         // Return to auton end position
         sequence.add(state(AutonomousState.RETURN_HOME));
         return sequence;
-    }
-
-    @Override
-    protected Path park(){
-        // through() builds only the curve - every Pedro 3 path also needs a heading, or follow() throws.
-        // First half turns start -> middle heading, second half turns middle -> end heading.
-        Pose start = poseFactory.of(135, 81, 180);
-        Pose middle = poseFactory.of(120, 96, 270);
-        Pose end = poseFactory.of(132, 48, 270);
-
-        return Paths.through(start, middle, end)
-                .heading(Interpolator.piecewise()
-                        .until(0.5, Interpolator.linear(start, middle))
-                        .until(1.0, Interpolator.linear(middle, end)))
-                .with(Constants.foresightConfig.maxPathSpeed.at(RobotConstants.TEST_PATH_SPEED));
     }
 }

@@ -125,6 +125,8 @@ public class RobotConstants {
     public static final long INTAKE_DURATION_MS = 3000;  // 3 seconds for ball collection
     public static final long APRIL_TAG_TIMEOUT_MS = 5000;  // 5 second timeout for AprilTag detection
     public static final long PATH_TIMEOUT_MS = 4000;  // 4 second timeout for path following (increased for heading settling)
+    public static final long TURN_TIMEOUT_MS = 1500;  // 1.5 second timeout for a turn in place
+    public static final long PARK_PATH_TIMEOUT_MS = 7000;  // 7 second timeout for the RETURN_HOME park path (~100" curve around the hive)
     public static final long INTAKE_PATH_TIMEOUT_MS = 5000;  // 5 second timeout for slow intake movement
     public static final long HEADING_SETTLING_DELAY_MS = 200;  // 200ms delay after path completes to allow heading to settle before launch
     public static final double SHORT_PATH_THRESHOLD_MM = 150.0;  // Paths shorter than this use constant heading, longer paths use heading interpolation
