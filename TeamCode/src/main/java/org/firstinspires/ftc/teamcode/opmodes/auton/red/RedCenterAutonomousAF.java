@@ -35,17 +35,8 @@ public class RedCenterAutonomousAF extends BaseLinearAutonomous {
         sequence.add(state(AutonomousState.OPEN_POLLEN_SERVO));
         sequence.add(waitMs(5000));
         sequence.add(state(AutonomousState.STOP_POLLEN_LAUNCHER));
-        sequence.add(state(AutonomousState.START_NECTAR_LAUNCHER));
         sequence.add(waitMs(500));
-        //open the gates
-        sequence.add(state(AutonomousState.OPEN_NECTAR_SERVO));
-        sequence.add(waitMs(3000));
-        // Stop launchers
-        sequence.add(state(AutonomousState.STOP_NECTAR_LAUNCHER));
-        //close gate
         sequence.add(state(AutonomousState.CLOSE_POLLEN_SERVO));
-        sequence.add(state(AutonomousState.CLOSE_NECTAR_SERVO));
-        sequence.add(waitMs(1000));
         // Return to auton end position
         sequence.add(state(AutonomousState.RETURN_HOME));
         return sequence;
