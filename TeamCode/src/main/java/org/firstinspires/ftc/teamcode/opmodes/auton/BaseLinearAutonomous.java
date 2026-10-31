@@ -37,6 +37,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.mechanisms.IntakeUtil;
 import org.firstinspires.ftc.teamcode.mechanisms.LauncherUtil;
+import org.firstinspires.ftc.teamcode.mechanisms.LiftUtil;
+import org.firstinspires.ftc.teamcode.mechanisms.ServoUtil;
 import org.firstinspires.ftc.teamcode.opmodes.AllianceConfig;
 import org.firstinspires.ftc.teamcode.opmodes.LaunchTarget;
 import org.firstinspires.ftc.teamcode.opmodes.PoseHolder;
@@ -54,6 +56,8 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
     protected final PoseFactory poseFactory = PoseFactory.degrees();
     protected LauncherUtil launcher;
     protected IntakeUtil intake;
+    protected ServoUtil servos;
+    protected LiftUtil lift;
     // Alliance-specific configuration
     protected AllianceConfig allianceConfig;
 
@@ -65,6 +69,7 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
     protected boolean homeTurnDone = false;         // RETURN_HOME: true once the turn-in-place to the park heading is done
     protected Path homePath;                        // RETURN_HOME: park path, built once when RETURN_HOME starts
     protected Pose homeTurnPose;                    // RETURN_HOME: current x/y with the heading the park path starts with
+    protected int liftStartPosition;                // LIFT_UP / LIFT_DOWN: encoder position when the move started
 
     // Timing control
     protected ElapsedTime autonomousTimer = new ElapsedTime();  // Tracks total autonomous runtime (never reset)
@@ -79,6 +84,8 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
         STOP_POLLEN_LAUNCHER,
         START_NECTAR_LAUNCHER,
         STOP_NECTAR_LAUNCHER,
+        LIFT_UP,
+        LIFT_DOWN,
         OPEN_POLLEN_SERVO,
         OPEN_NECTAR_SERVO,
         CLOSE_POLLEN_SERVO,
@@ -147,21 +154,24 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
      * Path driven in RETURN_HOME. Built from the robot's current pose when RETURN_HOME starts; the robot
      * first turns in place to the path's starting heading, then follows it.
      *
-     * Default: curve around the hive from the start in front of it (along a top/bottom wall) to the
-     * auton end pose (along a side wall). The curve bows toward the corner at (end x, start y), away
-     * from the hive (~31" from the hive center for a start of (55, 9) Red / (89, 135) Blue).
-     *
-     * The robot faces along the curve (tangent heading), so it turns left in place to face the corner,
-     * then drives forward and finishes facing straight along the side wall - the park heading -
-     * because the corner is in line with the end point. Override for a custom park.
+     * Default: the autons launch from the init pose against a side wall and park further along the same
+     * wall, so the robot must turn ~90 degrees close to the wall. Turning in place there swings the back
+     * corners into the wall, so instead the path bows out toward the field center by
+     * RobotConstants.PARK_WALL_CLEARANCE_IN (cubic curve with both control points pushed off the wall),
+     * and the heading turns gradually from the start heading to the park heading along the way. The
+     * turn happens mostly mid-path, where the robot is furthest from the wall. Override for a custom park.
      */
     protected Path park() {
         Pose start = follower.pose();
         Pose end = allianceConfig.getAutonEndPose();
-        Pose corner = new Pose(end.x(), start.y(), 0);  // Bezier control point; its heading is unused
+        double startHrading = Math.toDegrees(start.heading());
+        // Push the control points away from the nearest side wall (x = 0 for Red, x = 144 for Blue)
+        double awayFromWall = start.y() < 15 && (startHrading > 87 && startHrading < 93) ? RobotConstants.PARK_WALL_CLEARANCE_IN : -RobotConstants.PARK_WALL_CLEARANCE_IN;
+        Pose control1 = new Pose(start.x() , start.y()+awayFromWall, 0);  // Bezier control points; their headings are unused
+        Pose control2 = new Pose(end.x() , end.y()+awayFromWall, 0);
 
-        return Paths.curve(start, corner, end)
-                .tangent()
+        return Paths.curve(start, control1, control2, end)
+                .linear(start, end)
                 .with(Constants.foresightConfig.maxPathSpeed.at(RobotConstants.TEST_PATH_SPEED));
     }
 
@@ -318,6 +328,12 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
 
         intake = new IntakeUtil();
         intake.init(hardwareMap);
+
+        servos = new ServoUtil();
+        servos.init(hardwareMap);
+
+        lift = new LiftUtil();
+        lift.init(hardwareMap);
     }
     /**
      * Main state machine update - called every loop
@@ -331,7 +347,8 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
                 telemetry.addData("WARNING", String.format("Time deadline reached (%.1fs) - Forcing return home!",
                     autonomousTimer.milliseconds() / 1000.0));
 
-                // Reset path flag and transition to return home
+                // Stop a lift move that was cut short, then reset path flag and transition to return home
+                lift.stop();
                 pathStarted = false;
                 homeTurnDone = false;
                 currentState = AutonomousState.RETURN_HOME;
@@ -370,6 +387,12 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
             case WAIT:
                 handleWaitState();
                 break;
+            case LIFT_UP:
+                handleLiftUp();
+                break;
+            case LIFT_DOWN:
+                handleLiftDown();
+                break;
             case COMPLETE:
                 break;
         }
@@ -378,6 +401,52 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
         if (currentState != AutonomousState.COMPLETE) {
             follower.update();
             updateTelemetry();
+        }
+    }
+
+    /**
+     * Raise the lift RobotConstants.LIFT_TICKS_ATON ticks from where it is when the state starts
+     */
+    protected void handleLiftUp(){
+        handleLiftMove(true);
+    }
+
+    /**
+     * Lower the lift RobotConstants.LIFT_TICKS_ATON ticks from where it is when the state starts
+     */
+    protected void handleLiftDown(){
+        handleLiftMove(false);
+    }
+
+    /**
+     * Runs the lift at LIFT_UP_SPEED / LIFT_DOWN_SPEED until it has moved RobotConstants.LIFT_TICKS_ATON ticks
+     * (or RobotConstants.LIFT_TIMEOUT_MS passes), then stops it and advances
+     */
+    protected void handleLiftMove(boolean up){
+        // First loop of this state: remember where the lift started and start it moving
+        // (pathStarted is reset by advanceToNextState, so it doubles as the "move started" flag)
+        if (!pathStarted) {
+            liftStartPosition = lift.getPosition();
+            if (up) {
+                lift.up();
+            } else {
+                lift.down();
+            }
+            pathStarted = true;
+        }
+
+        int ticksMoved = Math.abs(lift.getPosition() - liftStartPosition);
+        telemetry.addData("Status", String.format("Lift %s: %d / %d ticks", up ? "up" : "down",
+            ticksMoved, RobotConstants.LIFT_TICKS_ATON));
+
+        boolean timedOut = stateTimer.milliseconds() >= RobotConstants.LIFT_TIMEOUT_MS;
+        if (timedOut) {
+            telemetry.addData("WARNING", "Lift move timed out!");
+        }
+
+        if (ticksMoved >= RobotConstants.LIFT_TICKS_ATON || timedOut) {
+            lift.stop();
+            advanceToNextState();
         }
     }
 
@@ -397,12 +466,14 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
     }
 
     protected void handlePollenServo(){
-        telemetry.addData("handlePollenServo", "Pollen Servo not configured yet ");
+        servos.openPollen();
+        telemetry.addData("Status", "Pollen Servo Open");
         advanceToNextState();
     }
 
     protected void handleNectarServo(){
-        telemetry.addData("handleNectarServo", "Nectar Servo not configured yet ");
+        servos.openNectar();
+        telemetry.addData("Status", "Nectar Servo opened");
         advanceToNextState();
     }
 
@@ -417,12 +488,14 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
     }
 
     protected void closePollenServo(){
-        telemetry.addData("closePollenServo", "not configured yet");
+        servos.closePollen();
+        telemetry.addData("Status", "Pollen Servo closed");
         advanceToNextState();
     }
 
     protected void closeNectarServo(){
-        telemetry.addData("closeNectarServo", "not configured yet ");
+        servos.closeNectar();
+        telemetry.addData("Status", "Nectar Servo closed");
         advanceToNextState();
     }
 
@@ -563,6 +636,7 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
     protected void stopAllMotors() {
         launcher.stop();
         intake.stop();
+        lift.stop();
     }
 
     /**

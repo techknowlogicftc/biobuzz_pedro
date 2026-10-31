@@ -53,10 +53,10 @@ public class RobotConstants {
     public static final double LAUNCHER_VELOCITY_TOLERANCE_UPPER = 0.05;  // 5% tolerance above target for launcher speed check
     
     // Launcher gate servo positions (0..1) - starting values, not yet tuned on the robot
-    public static final double POLLEN_SERVO_OPEN_POSITION = 0.5;    // Pollen gate open (feeds launcher)
+    public static final double POLLEN_SERVO_OPEN_POSITION = 1.0;    // Pollen gate open (feeds launcher)
     public static final double POLLEN_SERVO_CLOSED_POSITION = 0.0;  // Pollen gate closed
-    public static final double NECTAR_SERVO_OPEN_POSITION = 0.5;    // Nectar gate open (feeds launcher)
-    public static final double NECTAR_SERVO_CLOSED_POSITION = 0.0;  // Nectar gate closed
+    public static final double NECTAR_SERVO_OPEN_POSITION = 0.6;    // Nectar gate open (feeds launcher)
+    public static final double NECTAR_SERVO_CLOSED_POSITION = 0.33;  // Nectar gate closed
 
     // Ball kicker servo positions
     public static final double SLOT1_STARTING_POSITION = 0.44;  // Slot 1 kicker rest position
@@ -69,12 +69,12 @@ public class RobotConstants {
     public static final long BALL_TRAVEL_DELAY_MS = 800;        // Time for ball to travel from kicker to launcher area
     
     // Launcher velocity constants (ticks per second)
-    public static final int NEAR_LAUNCH_SPEED = 1000;         // Full speed for normal launch (teleop)
-    public static final int CENTER_POLLEN_LAUNCH_SPEED = 1000;
-    public static final int SIDE_POLLEN_LAUNCH_SPEED = 1000;
+    public static final int NEAR_LAUNCH_SPEED = 1200;         // Full speed for normal launch (teleop)
+    public static final int CENTER_POLLEN_LAUNCH_SPEED = 1200;
+    public static final int SIDE_POLLEN_LAUNCH_SPEED = 1200;
 
-    public static final int CENTER_NECTAR_LAUNCH_SPEED = 1000;
-    public static final int SIDE_NECTAR_LAUNCH_SPEED = 1000;
+    public static final int CENTER_NECTAR_LAUNCH_SPEED = 1400;
+    public static final int SIDE_NECTAR_LAUNCH_SPEED = 1400;
 
     public static final int FAR_LAUNCH_SPEED = 1200;         // High speed for small triangle launch (teleop)
     public static final int LAUNCHER_DUMMY_SPEED = 1000;        // Half speed for dummy launch
@@ -99,7 +99,7 @@ public class RobotConstants {
     // Lift velocity constants (ticks per second) - starting values, not yet tuned on the robot
     public static final int LIFT_UP_SPEED = 800;                // Raise the lift
     public static final int LIFT_DOWN_SPEED = -600;             // Lower the lift
-    public static final int MAX_LIFT_SPEED = 1200;              // Max speed for variable (joystick) control
+    public static final int MAX_LIFT_SPEED = 100;              // Max speed for variable (joystick) control
     public static final int LIFT_STOP_SPEED = 0;                // Stop speed
 
     // Driver control constants (for teleop)
@@ -127,9 +127,21 @@ public class RobotConstants {
     public static final long PATH_TIMEOUT_MS = 4000;  // 4 second timeout for path following (increased for heading settling)
     public static final long TURN_TIMEOUT_MS = 1500;  // 1.5 second timeout for a turn in place
     public static final long PARK_PATH_TIMEOUT_MS = 7000;  // 7 second timeout for the RETURN_HOME park path (~100" curve around the hive)
+    public static final double PARK_WALL_CLEARANCE_IN = 3.0;  // How far the RETURN_HOME park curve bows away from the side wall (inches) so the robot can turn without hitting it
     public static final long INTAKE_PATH_TIMEOUT_MS = 5000;  // 5 second timeout for slow intake movement
     public static final long HEADING_SETTLING_DELAY_MS = 200;  // 200ms delay after path completes to allow heading to settle before launch
     public static final double SHORT_PATH_THRESHOLD_MM = 150.0;  // Paths shorter than this use constant heading, longer paths use heading interpolation
     public static final double AUTON_SPEED_MULTIPLIER = 0.8;
     public static final long AUTONOMOUS_RETURN_HOME_DEADLINE_MS = 28000;  // 28 seconds - Force return home to ensure completion within 30 seconds
+
+    public static final int LIFT_TICKS_ATON = 500;
+    // TeleOp drive-to-shooting-position (both gamepad1 bumpers held inside the zone)
+    public static final double SHOOTING_ZONE_MIN_X = 12;        // Zone the robot must be in to start (inches)
+    public static final double SHOOTING_ZONE_MAX_X = 70;
+    public static final double SHOOTING_ZONE_MAX_Y = 48;
+    public static final double SHOOTING_POSITION_X = 20;        // Where it drives to (inches)
+    public static final double SHOOTING_POSITION_Y = 20;
+    public static final double SHOOTING_POSITION_HEADING_DEG = 45;
+    public static final double SHOOTING_POSITION_PATH_SPEED = 0.5;  // Max path speed while driving there
+    public static final long LIFT_TIMEOUT_MS = 2000;  // 2 second timeout for an autonomous LIFT_UP / LIFT_DOWN move
 }

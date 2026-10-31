@@ -11,21 +11,28 @@ package org.firstinspires.ftc.teamcode.opmodes.teleop;
  * Mechanisms use the shared utils in org.firstinspires.ftc.teamcode.mechanisms:
  * - LauncherUtil for the two launcher motors
  * - IntakeUtil for the intake motor
+ * - ServoUtil for the pollen and nectar gate servos
  * - LimelightUtil for AprilTag detection of the alliance goal tag
  *
  * GAMEPAD1 CONTROLS (Driver):
  * - Left stick: Forward/backward and strafe movement
  * - Right stick: Robot rotation
  * - Right trigger: Slow mode (RobotConstants.SLOW_MODE_MULTIPLIER)
- * - Left + right bumper (hold): Turn to face the alliance goal AprilTag (left stick still drives)
- * - X button: Toggle pollen launcher (on at RobotConstants.NEAR_LAUNCH_SPEED, press again to stop)
- * - Y button: Toggle nectar launcher (on at RobotConstants.NEAR_LAUNCH_SPEED, press again to stop)
+ * - Left + right bumper (hold): Drive to the shooting position if inside the shooting zone (release to cancel)
+ * - X button: Toggle pollen launcher (on at RobotConstants.NEAR_LAUNCH_SPEED, press again to stop);
+ *   the pollen gate opens automatically once the launcher reaches speed
+ * - B button: Toggle nectar launcher (on at RobotConstants.NEAR_LAUNCH_SPEED, press again to stop);
+ *   the nectar gate opens automatically once the launcher reaches speed
  * - Right bumper: Add RobotConstants.LAUNCHER_SPEED_STEP to every running launcher
  *   and RobotConstants.INTAKE_SPEED_STEP to the intake/outtake if it is running
  * - Left bumper: Subtract RobotConstants.LAUNCHER_SPEED_STEP from every running launcher
  *   and RobotConstants.INTAKE_SPEED_STEP from the intake/outtake if it is running
- * - A button: Toggle intake (press again to stop)
- * - B button: Toggle outtake (press again to stop)
+ * - Dpad left: Toggle pollen gate servo (open, press again to close)
+ * - Dpad right: Toggle nectar gate servo (open, press again to close)
+ *
+ * GAMEPAD2 CONTROLS (Operator):
+ * - Y button: Toggle intake (press again to stop)
+ * - A button: Toggle outtake (press again to stop)
  *
  * Subclasses must implement:
  * - getAllianceConfig(): Provide alliance-specific configuration (Blue/Red)
@@ -33,12 +40,15 @@ package org.firstinspires.ftc.teamcode.opmodes.teleop;
 
 import com.pedropathing.drivetrain.DrivePowers;
 import com.pedropathing.follower.Follower;
+import com.pedropathing.api.Paths;
 import com.pedropathing.math.Pose;
+import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.teamcode.mechanisms.IntakeUtil;
 import org.firstinspires.ftc.teamcode.mechanisms.LauncherUtil;
 import org.firstinspires.ftc.teamcode.mechanisms.LimelightUtil;
+import org.firstinspires.ftc.teamcode.mechanisms.ServoUtil;
 import org.firstinspires.ftc.teamcode.opmodes.AllianceConfig;
 import org.firstinspires.ftc.teamcode.opmodes.PoseHolder;
 import org.firstinspires.ftc.teamcode.opmodes.RobotConstants;
@@ -49,6 +59,7 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
     protected Follower follower;                    // Main robot movement controller
     protected LauncherUtil launcher;                // Two-motor launcher
     protected IntakeUtil intake;                    // Intake motor
+    protected ServoUtil servos;                     // Pollen and nectar gate servos
     protected LimelightUtil limelight;              // Limelight3A AprilTag camera
 
     // Alliance-specific configuration
@@ -60,6 +71,9 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
     protected boolean aligning = false;             // Tracks whether goal alignment is active (both bumpers held)
     protected boolean aligned = false;              // Tracks whether the robot is facing the goal tag
     protected int speedSteps = 0;                   // Bumper speed adjustment this loop: +1 faster, -1 slower, 0 none
+    protected boolean pollenGatePending = false;    // Pollen launcher started with X; open its gate once at speed
+    protected boolean nectarGatePending = false;    // Nectar launcher started with B; open its gate once at speed
+    protected boolean drivingToShootingPosition = false;  // Following the path to the shooting position (both bumpers held)
 
     /**
      * Abstract method that subclasses must implement to provide alliance-specific configuration
@@ -106,6 +120,12 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
             // INTAKE CONTROL (GAMEPAD1)
             handleIntakeControl();
 
+            // GATE SERVO CONTROL (GAMEPAD1 dpad left = pollen, dpad right = nectar)
+            handlePollenServo();
+            handleNectarServo();
+
+            handleShootingPosition();
+
             // TELEMETRY DISPLAY
             displayTelemetry();
         }
@@ -123,6 +143,9 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
 
         intake = new IntakeUtil();
         intake.init(hardwareMap);
+
+        servos = new ServoUtil();
+        servos.init(hardwareMap);
 
         // Track only this alliance's goal AprilTag
         //limelight = new LimelightUtil(hardwareMap);
@@ -169,6 +192,11 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
             //turn = handleAlignToGoal(turn);
         } else {
             aligned = false;
+        }
+
+        // Path to the shooting position has control of the drivetrain - don't override it with the sticks
+        if (drivingToShootingPosition) {
+            return;
         }
 
         // Robot centric - robot moves relative to its current orientation
@@ -225,7 +253,7 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
     protected void handleLauncherControl() {
         // Read every edge each loop so a stale press is never picked up later
         boolean xPressed = gamepad1.xWasPressed();
-        boolean yPressed = gamepad1.yWasPressed();
+        boolean bPressed = gamepad1.bWasPressed();
 
         int speedChange = speedSteps * RobotConstants.LAUNCHER_SPEED_STEP;
 
@@ -233,28 +261,42 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
         if (xPressed) {
             if (launcher.isPollenOn()) {
                 launcher.stopPollen();
+                pollenGatePending = false;
             } else {
                 launcher.setPollenSpeed(RobotConstants.NEAR_LAUNCH_SPEED);
+                pollenGatePending = true;
             }
         } else if (speedChange != 0 && launcher.isPollenOn()) {
             launcher.setPollenSpeed(adjustLauncherSpeed(launcher.getPollenTargetSpeed(), speedChange));
         }
 
-        // Nectar launcher: Y toggles on (near speed) / off; bumpers adjust speed while it is on
-        if (yPressed) {
+        // Nectar launcher: B toggles on (near speed) / off; bumpers adjust speed while it is on
+        if (bPressed) {
             if (launcher.isNectarOn()) {
                 launcher.stopNectar();
+                nectarGatePending = false;
             } else {
                 launcher.setNectarSpeed(RobotConstants.NEAR_LAUNCH_SPEED);
+                nectarGatePending = true;
             }
         } else if (speedChange != 0 && launcher.isNectarOn()) {
             launcher.setNectarSpeed(adjustLauncherSpeed(launcher.getNectarTargetSpeed(), speedChange));
+        }
+
+        // Open each gate once its launcher (started with X / B) has reached speed - checked every loop
+        if (pollenGatePending && isLauncherAtSpeed(launcher.getPollenTargetSpeed(), launcher.getPollenVelocity())) {
+            servos.openPollen();
+            pollenGatePending = false;
+        }
+        if (nectarGatePending && isLauncherAtSpeed(launcher.getNectarTargetSpeed(), launcher.getNectarVelocity())) {
+            servos.openNectar();
+            nectarGatePending = false;
         }
     }
 
     /**
      * Adds speedChange to a running launcher's target speed, kept between one step and RobotConstants.LAUNCHER_MAX_SPEED
-     * (never reaches 0, so slowing down never turns the launcher off - use X / Y for that)
+     * (never reaches 0, so slowing down never turns the launcher off - use X / B for that)
      */
     protected int adjustLauncherSpeed(int currentSpeed, int speedChange) {
         int newSpeed = currentSpeed + speedChange;
@@ -266,36 +308,91 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
      */
     protected void handleIntakeControl() {
         // Read every edge each loop so a stale press is never picked up later
-        boolean aPressed = gamepad1.aWasPressed();
-        boolean bPressed = gamepad1.bWasPressed();
+        boolean intakePressed = gamepad2.yWasPressed();
+        boolean outtakePressed = gamepad2.aWasPressed();
 
         // Direction comes from the sign, since bumpers can move the speed off the default values
         int currentSpeed = intake.getTargetSpeed();
 
-        // A toggles intake on/off; switches straight from outtake to intake if outtake is running
-        if (aPressed) {
+        // Gamepad2 Y toggles intake on/off; switches straight from outtake to intake if outtake is running
+        if (intakePressed) {
             if (currentSpeed > 0) {
                 intake.stop();
             } else {
                 intake.intake();
             }
-        } else if (bPressed) {
-            // B toggles outtake on/off; switches straight from intake to outtake if intake is running
+        } else if (outtakePressed) {
+            // Gamepad2 A toggles outtake on/off; switches straight from intake to outtake if intake is running
             if (currentSpeed < 0) {
                 intake.stop();
             } else {
                 intake.outtake();
             }
         } else if (speedSteps != 0 && intake.isOn()) {
-            // Bumpers adjust speed while intake or outtake is running
+            // Gamepad1 bumpers adjust speed while intake or outtake is running
             intake.setSpeed(adjustIntakeSpeed(currentSpeed, speedSteps * RobotConstants.INTAKE_SPEED_STEP));
         }
     }
 
     /**
+     * Gamepad1 dpad left toggles the pollen gate servo open/closed
+     */
+    protected void handlePollenServo() {
+        if (gamepad1.dpadLeftWasPressed()) {
+            servos.togglePollen();
+        }
+    }
+
+    /**
+     * Gamepad1 dpad right toggles the nectar gate servo open/closed
+     */
+    protected void handleNectarServo() {
+        if (gamepad1.dpadRightWasPressed()) {
+            servos.toggleNectar();
+        }
+    }
+
+    /**
+     * Both gamepad1 bumpers held inside the shooting zone (RobotConstants.SHOOTING_ZONE_*) drives the robot to
+     * the shooting position (RobotConstants.SHOOTING_POSITION_*). The zone is only checked when the drive starts;
+     * releasing either bumper cancels it and hands the drivetrain back to the sticks.
+     */
+    protected void handleShootingPosition(){
+        boolean bothBumpers = gamepad1.left_bumper && gamepad1.right_bumper;
+
+        if (!bothBumpers) {
+            // Bumpers released - stop following; handleManualControl takes over next loop
+            drivingToShootingPosition = false;
+            return;
+        }
+
+        if (drivingToShootingPosition) {
+            telemetry.addData("Shooting Position", follower.isBusy() ? "DRIVING" : "ARRIVED");
+            return;
+        }
+
+        Pose currentPose = follower.pose();
+        boolean inZone = currentPose.x() > RobotConstants.SHOOTING_ZONE_MIN_X
+            && currentPose.x() < RobotConstants.SHOOTING_ZONE_MAX_X
+            && currentPose.y() < RobotConstants.SHOOTING_ZONE_MAX_Y;
+        if (!inZone) {
+            telemetry.addData("Shooting Position", "OUT OF ZONE");
+            return;
+        }
+
+        Pose targetPose = new Pose(RobotConstants.SHOOTING_POSITION_X, RobotConstants.SHOOTING_POSITION_Y,
+            Math.toRadians(RobotConstants.SHOOTING_POSITION_HEADING_DEG));
+        Path path = Paths.line(currentPose, targetPose)
+            .linear(currentPose, targetPose)
+            .with(Constants.foresightConfig.maxPathSpeed.at(RobotConstants.SHOOTING_POSITION_PATH_SPEED));
+        follower.follow(path);
+        drivingToShootingPosition = true;
+    }
+
+    /**
      * Adds speedChange to the running intake's speed magnitude, keeping its direction (intake or outtake).
      * Kept between one step and RobotConstants.INTAKE_ADJUST_MAX_SPEED (never reaches 0, so slowing down
-     * never turns the intake off - use A / B for that)
+     * never turns the intake off - use gamepad2 Y / A for that)
      */
     protected int adjustIntakeSpeed(int currentSpeed, int speedChange) {
         int newMagnitude = Math.abs(currentSpeed) + speedChange;
@@ -330,6 +427,10 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
             String.format("%s (%d)", intakeSpeed < 0 ? "REVERSE" : "ON", intakeSpeed));
         telemetry.addData("Intake Velocity", String.format("%.0f ticks/sec", intake.getVelocity()));
 
+        // Gate servo status
+        telemetry.addData("Pollen Gate", servos.isPollenOpen() ? "OPEN" : "CLOSED");
+        telemetry.addData("Nectar Gate", servos.isNectarOpen() ? "OPEN" : "CLOSED");
+
         // Limelight status
         /*telemetry.addData("Limelight", limelight.getStatusString());
         if (limelight.hasTarget()) {
@@ -337,10 +438,11 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
             telemetry.addData("Goal tx", String.format("%.1f°", limelight.getTx()));
         }*/
 
-        telemetry.addData("Gamepad1 Controls", String.format("X=Pollen On(%d)/Off, Y=Nectar On/Off, RB=+%d, LB=-%d, RT=Slow, LB+RB=Align",
+        telemetry.addData("Gamepad1 Controls", String.format("X=Pollen On(%d)/Off, B=Nectar On/Off, RB=+%d, LB=-%d, RT=Slow, LB+RB=Shoot Pos, DpadL=Pollen Gate, DpadR=Nectar Gate",
             RobotConstants.NEAR_LAUNCH_SPEED, RobotConstants.LAUNCHER_SPEED_STEP, RobotConstants.LAUNCHER_SPEED_STEP));
-        telemetry.addData("Intake Controls", String.format("A=Intake On/Off, B=Outtake On/Off, RB=+%d, LB=-%d",
+        telemetry.addData("Intake Controls", String.format("GP2 Y=Intake On/Off, GP2 A=Outtake On/Off, GP1 RB=+%d, GP1 LB=-%d",
             RobotConstants.INTAKE_SPEED_STEP, RobotConstants.INTAKE_SPEED_STEP));
+        telemetry.addData("Gamepad2 Controls", "Y=Intake, A=Outtake");
         telemetry.update();
     }
 

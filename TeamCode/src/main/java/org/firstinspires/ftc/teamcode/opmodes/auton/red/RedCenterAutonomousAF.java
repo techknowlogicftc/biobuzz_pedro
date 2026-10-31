@@ -31,12 +31,12 @@ public class RedCenterAutonomousAF extends BaseLinearAutonomous {
     
         // Start launcher motors
         sequence.add(state(AutonomousState.START_POLLEN_LAUNCHER));
-        sequence.add(waitMs(500));
-        sequence.add(state(AutonomousState.OPEN_POLLEN_SERVO));
-        sequence.add(waitMs(5000));
+        sequence.add(waitMs(3000));
+        sequence.add(state(AutonomousState.CLOSE_POLLEN_SERVO));
+        sequence.add(waitMs(8000));
         sequence.add(state(AutonomousState.STOP_POLLEN_LAUNCHER));
         sequence.add(waitMs(500));
-        sequence.add(state(AutonomousState.CLOSE_POLLEN_SERVO));
+        sequence.add(state(AutonomousState.OPEN_POLLEN_SERVO));
         // Return to auton end position
         sequence.add(state(AutonomousState.RETURN_HOME));
         return sequence;

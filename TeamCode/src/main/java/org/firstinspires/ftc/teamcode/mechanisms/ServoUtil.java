@@ -7,7 +7,7 @@ import org.firstinspires.ftc.teamcode.opmodes.RobotConstants;
 /**
  * Two gate servos that feed the pollen and nectar launchers.
  *
- * Hardware config names: "pollenServo", "nectarServo"
+ * Hardware config names: "pollen", "nectar"
  * Positions are 0..1. Open/closed positions live in RobotConstants.
  * If a gate moves the wrong way, swap its OPEN and CLOSED positions in RobotConstants.
  */
@@ -20,10 +20,10 @@ public class ServoUtil {
     private boolean nectarOpen = false;
 
     public void init(HardwareMap hwMap) {
-        pollenServo = hwMap.get(Servo.class, "pollenServo");
-        nectarServo = hwMap.get(Servo.class, "nectarServo");
+        pollenServo = hwMap.get(Servo.class, "pollen");
+        nectarServo = hwMap.get(Servo.class, "nectar");
 
-        close();
+        openPollen();
     }
 
     // ---------------- Both servos ----------------
@@ -81,12 +81,12 @@ public class ServoUtil {
     // ---------------- Nectar servo ----------------
 
     public void openNectar() {
-        nectarServo.setPosition(RobotConstants.NECTAR_SERVO_OPEN_POSITION);
+        nectarServo.setPosition(RobotConstants.NECTAR_SERVO_CLOSED_POSITION);
         nectarOpen = true;
     }
 
     public void closeNectar() {
-        nectarServo.setPosition(RobotConstants.NECTAR_SERVO_CLOSED_POSITION);
+        nectarServo.setPosition(RobotConstants.NECTAR_SERVO_OPEN_POSITION);
         nectarOpen = false;
     }
 

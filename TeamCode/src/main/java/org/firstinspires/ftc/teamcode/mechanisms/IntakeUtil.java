@@ -10,7 +10,7 @@ import org.firstinspires.ftc.teamcode.opmodes.RobotConstants;
  *
  * Hardware config name: "intake"
  * Speeds are in encoder ticks per second. Positive = pull in, negative = push out.
- * If the intake spins the wrong way, flip the sign of RobotConstants.INTAKE_SPEED and RobotConstants.OUTTAKE_SPEED.
+ * The motor is reversed in init() so positive speeds pull in; if the intake spins the wrong way, change that direction.
  */
 public class IntakeUtil {
 
@@ -20,6 +20,9 @@ public class IntakeUtil {
 
     public void init(HardwareMap hwMap) {
         intakeMotor = hwMap.get(DcMotorEx.class, "intake");
+
+        // Reversed so positive speeds (INTAKE_SPEED) pull game pieces in
+        intakeMotor.setDirection(DcMotor.Direction.REVERSE);
 
         // Encoder-based velocity control
         intakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
