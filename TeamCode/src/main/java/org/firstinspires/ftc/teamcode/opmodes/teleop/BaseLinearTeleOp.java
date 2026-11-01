@@ -180,10 +180,9 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
         slowMode = gamepad1.right_trigger > RobotConstants.TRIGGER_DEADBAND;
         double speedMultiplier = slowMode ? RobotConstants.SLOW_MODE_MULTIPLIER : 1.0;
 
-        // Forward and strafe are flipped so the driver's "front" is the robot's back end
-        // (motor directions in Constants are unchanged, so autonomous and odometry are unaffected)
-        double forward = applyDeadzone(gamepad1.left_stick_y) * speedMultiplier;    // Forward/backward movement
-        double strafe = applyDeadzone(gamepad1.left_stick_x) * speedMultiplier;     // Left/right strafe movement
+        // Gamepad Y is negative when pushed up and Pedro strafe is positive to the left, so both are negated
+        double forward = -applyDeadzone(gamepad1.left_stick_y) * speedMultiplier;   // Forward/backward movement
+        double strafe = -applyDeadzone(gamepad1.left_stick_x) * speedMultiplier;    // Left/right strafe movement
         double turn = -applyDeadzone(gamepad1.right_stick_x) * speedMultiplier;     // Rotation
 
         // Both bumpers held - Limelight takes over rotation to face the goal
@@ -285,11 +284,11 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
 
         // Open each gate once its launcher (started with X / B) has reached speed - checked every loop
         if (pollenGatePending && isLauncherAtSpeed(launcher.getPollenTargetSpeed(), launcher.getPollenVelocity())) {
-            servos.openPollen();
+            servos.closePollen();
             pollenGatePending = false;
         }
         if (nectarGatePending && isLauncherAtSpeed(launcher.getNectarTargetSpeed(), launcher.getNectarVelocity())) {
-            servos.openNectar();
+            servos.closeNectar();
             nectarGatePending = false;
         }
     }
