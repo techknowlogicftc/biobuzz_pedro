@@ -39,21 +39,21 @@ public enum LaunchTarget {
     // Autonomous end positions (no launcher)
     AUTON_END(
         new Pose(132, 48, Math.toRadians(270)),          // Blue alliance pose
-        new Pose(12, 91, Math.toRadians(90)),        // Red alliance pose
+        new Pose(12, 96, Math.toRadians(90)),        // Red alliance pose
         0                                                // No launcher
     ),
 
     // SF autonomous end positions - placeholder copy of AUTON_END, set the real SF park poses here
     AUTON_END_SF(
-        new Pose(132, 48, Math.toRadians(270)),          // Blue alliance pose
-        new Pose(12, 91, Math.toRadians(90)),            // Red alliance pose
+        new Pose(132, 30, Math.toRadians(90)),          // Blue alliance pose
+        new Pose(12, 118, Math.toRadians(270)),          // Red alliance pose
         0                                                // No launcher
     ),
 
     // Home/starting positions
     ALLIANCE_HOME(
         new Pose(132, 48, Math.toRadians(270)),                          // Blue alliance pose
-        new Pose(12, 91, Math.toRadians(90)),                           // Red alliance pose
+        new Pose(12, 96, Math.toRadians(90)),                           // Red alliance pose
         0                                                // No launcher
     ),
 

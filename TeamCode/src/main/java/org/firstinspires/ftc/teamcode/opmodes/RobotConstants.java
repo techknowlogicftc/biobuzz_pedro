@@ -70,11 +70,11 @@ public class RobotConstants {
     
     // Launcher velocity constants (ticks per second)
     public static final int NEAR_LAUNCH_SPEED = 1200;         // Full speed for normal launch (teleop)
-    public static final int CENTER_POLLEN_LAUNCH_SPEED = 1200;
-    public static final int SIDE_POLLEN_LAUNCH_SPEED = 1200;
+    public static final int CENTER_POLLEN_LAUNCH_SPEED = 1150;
+    public static final int SIDE_POLLEN_LAUNCH_SPEED = 1150;
 
-    public static final int CENTER_NECTAR_LAUNCH_SPEED = 1400;
-    public static final int SIDE_NECTAR_LAUNCH_SPEED = 1400;
+    public static final int CENTER_NECTAR_LAUNCH_SPEED = 1250;
+    public static final int SIDE_NECTAR_LAUNCH_SPEED = 1250;
 
     public static final int FAR_LAUNCH_SPEED = 1200;         // High speed for small triangle launch (teleop)
     public static final int LAUNCHER_DUMMY_SPEED = 1000;        // Half speed for dummy launch
@@ -89,8 +89,8 @@ public class RobotConstants {
     public static final int LAUNCH_TEST_SPEED_3 = 2500;
 
     // Intake velocity constants (ticks per second) - starting values, not yet tuned on the robot
-    public static final int INTAKE_SPEED = 800;                // Pull game pieces in
-    public static final int OUTTAKE_SPEED = -600;              // Push game pieces back out
+    public static final int INTAKE_SPEED = 600;                // Pull game pieces in
+    public static final int OUTTAKE_SPEED = -400;              // Push game pieces back out
     public static final int MAX_INTAKE_SPEED = 1200;            // Max speed for variable (trigger) control
     public static final int INTAKE_STOP_SPEED = 0;              // Stop speed
     public static final int INTAKE_SPEED_STEP = 25;             // Bumper speed adjustment per press (teleop)
@@ -127,7 +127,7 @@ public class RobotConstants {
     public static final long PATH_TIMEOUT_MS = 4000;  // 4 second timeout for path following (increased for heading settling)
     public static final long TURN_TIMEOUT_MS = 1500;  // 1.5 second timeout for a turn in place
     public static final long PARK_PATH_TIMEOUT_MS = 7000;  // 7 second timeout for the RETURN_HOME park path (~100" curve around the hive)
-    public static final double PARK_WALL_CLEARANCE_IN = 3.0;  // How far the RETURN_HOME park curve bows away from the side wall (inches) so the robot can turn without hitting it
+    public static final double PARK_WALL_CLEARANCE_IN = 2.0;  // How far the RETURN_HOME park curve bows away from the side wall (inches) so the robot can turn without hitting it
     public static final long INTAKE_PATH_TIMEOUT_MS = 5000;  // 5 second timeout for slow intake movement
     public static final long HEADING_SETTLING_DELAY_MS = 200;  // 200ms delay after path completes to allow heading to settle before launch
     public static final double SHORT_PATH_THRESHOLD_MM = 150.0;  // Paths shorter than this use constant heading, longer paths use heading interpolation
@@ -138,10 +138,34 @@ public class RobotConstants {
     // TeleOp drive-to-shooting-position (both gamepad1 bumpers held inside the zone)
     public static final double SHOOTING_ZONE_MIN_X = 12;        // Zone the robot must be in to start (inches)
     public static final double SHOOTING_ZONE_MAX_X = 70;
-    public static final double SHOOTING_ZONE_MAX_Y = 48;
-    public static final double SHOOTING_POSITION_X = 20;        // Where it drives to (inches)
-    public static final double SHOOTING_POSITION_Y = 20;
-    public static final double SHOOTING_POSITION_HEADING_DEG = 45;
+    public static final double SHOOTING_ZONE_MIN_Y = 96;
+
+    public static final double RED_SF_SHOOTING_ZONE_MIN_X = 12;        // Zone the robot must be in to start (inches)
+    public static final double RED_SF_SHOOTING_ZONE_MAX_X = 70;
+    public static final double RED_SF_SHOOTING_ZONE_MAX_Y = 48;
+
+    public static final double RED_SF_SHOOTING_POSITION_HEADING_DEG = 270;
+
+    public static final double RED_AF_SHOOTING_POSITION_X = 57;        // Where it drives to (inches)
+    public static final double RED_AF_SHOOTING_POSITION_Y = 10;
+    public static final double RED_AF_SHOOTING_POSITION_HEADING_DEG = 90;
+
+    public static final double RED_SF_SHOOTING_POSITION_X = 57;        // Where it drives to (inches)
+    public static final double RED_SF_SHOOTING_POSITION_Y = 10;
+
+    public static final double BLUE_SF_SHOOTING_ZONE_MIN_X = 87;        // Zone the robot must be in to start (inches)
+    public static final double BLUE_SF_SHOOTING_ZONE_MAX_X = 135;
+    public static final double BLUE_SF_SHOOTING_ZONE_MAX_Y = 48;
+
+    public static final double BLUE_SF_SHOOTING_POSITION_HEADING_DEG = 270;
+
+    public static final double BLUE_AF_SHOOTING_POSITION_X = 57;        // Where it drives to (inches)
+    public static final double BLUE_AF_SHOOTING_POSITION_Y = 10;
+    public static final double BLUE_AF_SHOOTING_POSITION_HEADING_DEG = 90;
+
+    public static final double BLUE_SF_SHOOTING_POSITION_X = 57;        // Where it drives to (inches)
+    public static final double BLUE_SF_SHOOTING_POSITION_Y = 10;
+
     public static final double SHOOTING_POSITION_PATH_SPEED = 0.5;  // Max path speed while driving there
     public static final long LIFT_TIMEOUT_MS = 2000;  // 2 second timeout for an autonomous LIFT_UP / LIFT_DOWN move
 }

@@ -1,9 +1,14 @@
 package org.firstinspires.ftc.teamcode.opmodes.auton.blue;
 
+import com.pedropathing.api.Paths;
+import com.pedropathing.math.Pose;
+import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 import org.firstinspires.ftc.teamcode.opmodes.AllianceConfig;
+import org.firstinspires.ftc.teamcode.opmodes.RobotConstants;
 import org.firstinspires.ftc.teamcode.opmodes.auton.BaseLinearAutonomous;
+import org.firstinspires.ftc.teamcode.pedro.Constants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,26 +33,32 @@ public class BlueCenterAutonomousAF extends BaseLinearAutonomous {
     protected List<StateNode> buildStateSequence() {
         List<StateNode> sequence = new ArrayList<>();
 
-
         // Start launcher motors
         sequence.add(state(AutonomousState.START_POLLEN_LAUNCHER));
+        sequence.add(waitMs(1000));
+        sequence.add(state(AutonomousState.CLOSE_POLLEN_SERVO));
+        sequence.add(waitMs(1000));
+        sequence.add(state(AutonomousState.START_INTAKE));
+        sequence.add(waitMs(4000));
+        sequence.add(state(AutonomousState.STOP_POLLEN_LAUNCHER));
+        sequence.add(state(AutonomousState.STOP_INTAKE));
         sequence.add(waitMs(500));
         sequence.add(state(AutonomousState.OPEN_POLLEN_SERVO));
-        sequence.add(waitMs(5000));
-        sequence.add(state(AutonomousState.STOP_POLLEN_LAUNCHER));
-        sequence.add(state(AutonomousState.START_NECTAR_LAUNCHER));
-        sequence.add(waitMs(500));
-        //open the gates
-        sequence.add(state(AutonomousState.OPEN_NECTAR_SERVO));
-        sequence.add(waitMs(3000));
-        // Stop launchers
-        sequence.add(state(AutonomousState.STOP_NECTAR_LAUNCHER));
-        //close gate
-        sequence.add(state(AutonomousState.CLOSE_POLLEN_SERVO));
-        sequence.add(state(AutonomousState.CLOSE_NECTAR_SERVO));
-        sequence.add(waitMs(1000));
         // Return to auton end position
         sequence.add(state(AutonomousState.RETURN_HOME));
         return sequence;
+    }
+
+    @Override
+    protected Path park() {
+        Pose start = follower.pose();
+        Pose end = allianceConfig.getAutonEndPose();
+        // Push the control points away from the nearest side wall (x = 0 for Red, x = 144 for Blue)
+        Pose control1 = new Pose(start.x() , start.y()-RobotConstants.PARK_WALL_CLEARANCE_IN, 0);  // Bezier control points; their headings are unused
+        Pose control2 = new Pose(end.x()-12 , end.y()+50, 0);
+
+        return Paths.curve(start, control1, control2, end)
+                .linear(start, end)
+                .with(Constants.foresightConfig.maxPathSpeed.at(RobotConstants.TEST_PATH_SPEED));
     }
 }

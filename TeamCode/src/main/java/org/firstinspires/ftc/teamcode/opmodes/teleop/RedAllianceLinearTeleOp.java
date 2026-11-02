@@ -1,8 +1,13 @@
 package org.firstinspires.ftc.teamcode.opmodes.teleop;
 
+import com.pedropathing.api.Paths;
+import com.pedropathing.math.Pose;
+import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.opmodes.AllianceConfig;
+import org.firstinspires.ftc.teamcode.opmodes.RobotConstants;
+import org.firstinspires.ftc.teamcode.pedro.Constants;
 
 /**
  * Red Alliance TeleOp - all control logic lives in BaseLinearTeleOp.
@@ -13,5 +18,52 @@ public class RedAllianceLinearTeleOp extends BaseLinearTeleOp {
     @Override
     protected AllianceConfig getAllianceConfig() {
         return AllianceConfig.createRedAllianceConfigAF();
+    }
+
+    @Override
+    protected void handleShootingPosition(){
+        boolean bothBumpers = gamepad1.left_bumper && gamepad1.right_bumper;
+
+        if (!bothBumpers) {
+            // Bumpers released - stop following; handleManualControl takes over next loop
+            drivingToShootingPosition = false;
+            return;
+        }
+
+        if (drivingToShootingPosition) {
+            telemetry.addData("Shooting Position", follower.isBusy() ? "DRIVING" : "ARRIVED");
+            return;
+        }
+
+        Pose currentPose = follower.pose();
+        boolean inRedAFZone = currentPose.x() > RobotConstants.RED_SF_SHOOTING_ZONE_MIN_X
+                && currentPose.x() < RobotConstants.RED_SF_SHOOTING_ZONE_MAX_X
+                && currentPose.y() < RobotConstants.RED_SF_SHOOTING_ZONE_MAX_Y;
+
+        boolean inRedSFZone = currentPose.x() > RobotConstants.RED_SF_SHOOTING_ZONE_MIN_X
+                && currentPose.x() < RobotConstants.RED_SF_SHOOTING_ZONE_MAX_X
+                && currentPose.y() > RobotConstants.RED_AF_SHOOTING_POSITION_Y;
+
+        if (!inRedAFZone && !inRedSFZone) {
+            telemetry.addData("Shooting Position", "OUT OF ZONE");
+            return;
+        }
+        if(inRedAFZone) {
+            Pose targetPose = new Pose(RobotConstants.RED_AF_SHOOTING_POSITION_X, RobotConstants.RED_AF_SHOOTING_POSITION_Y,
+                    Math.toRadians(RobotConstants.RED_AF_SHOOTING_POSITION_HEADING_DEG));
+            Path path = Paths.line(currentPose, targetPose)
+                    .linear(currentPose, targetPose)
+                    .with(Constants.foresightConfig.maxPathSpeed.at(RobotConstants.SHOOTING_POSITION_PATH_SPEED));
+            follower.follow(path);
+            drivingToShootingPosition = true;
+        }else if(inRedSFZone){
+            Pose targetPose = new Pose(RobotConstants.RED_SF_SHOOTING_POSITION_X, RobotConstants.RED_SF_SHOOTING_POSITION_Y,
+                    Math.toRadians(RobotConstants.RED_SF_SHOOTING_POSITION_HEADING_DEG));
+            Path path = Paths.line(currentPose, targetPose)
+                    .linear(currentPose, targetPose)
+                    .with(Constants.foresightConfig.maxPathSpeed.at(RobotConstants.SHOOTING_POSITION_PATH_SPEED));
+            follower.follow(path);
+            drivingToShootingPosition = true;
+        }
     }
 }

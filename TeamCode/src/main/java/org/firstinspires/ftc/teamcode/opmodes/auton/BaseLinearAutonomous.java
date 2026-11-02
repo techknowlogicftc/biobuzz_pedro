@@ -82,6 +82,8 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
         MOVE_TO_TARGET_SLOW,            // Parameterized: drive to "target" at INTAKE_MOVEMENT_SPEED
         START_POLLEN_LAUNCHER,
         STOP_POLLEN_LAUNCHER,
+        START_INTAKE,
+        STOP_INTAKE,
         START_NECTAR_LAUNCHER,
         STOP_NECTAR_LAUNCHER,
         LIFT_UP,
@@ -168,7 +170,7 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
         // Push the control points away from the nearest side wall (x = 0 for Red, x = 144 for Blue)
         double awayFromWall = start.y() < 15 && (startHrading > 87 && startHrading < 93) ? RobotConstants.PARK_WALL_CLEARANCE_IN : -RobotConstants.PARK_WALL_CLEARANCE_IN;
         Pose control1 = new Pose(start.x() , start.y()+awayFromWall, 0);  // Bezier control points; their headings are unused
-        Pose control2 = new Pose(end.x() , end.y()+awayFromWall, 0);
+        Pose control2 = new Pose(end.x() , end.y(), 0);
 
         return Paths.curve(start, control1, control2, end)
                 .linear(start, end)
@@ -393,6 +395,12 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
             case LIFT_DOWN:
                 handleLiftDown();
                 break;
+            case START_INTAKE:
+                handleStartIntake();
+                break;
+            case STOP_INTAKE:
+                handleStopIntake();
+                break;
             case COMPLETE:
                 break;
         }
@@ -403,6 +411,25 @@ public abstract class BaseLinearAutonomous extends LinearOpMode {
             updateTelemetry();
         }
     }
+
+    /**
+     * Run the intake inward at RobotConstants.INTAKE_SPEED, then advance
+     */
+    protected void handleStartIntake(){
+        intake.intake();
+        telemetry.addData("Status", "Intake started at " + RobotConstants.INTAKE_SPEED + " ticks/sec");
+        advanceToNextState();
+    }
+
+    /**
+     * Stop the intake, then advance
+     */
+    protected void handleStopIntake(){
+        intake.stop();
+        telemetry.addData("Status", "Intake stopped");
+        advanceToNextState();
+    }
+
 
     /**
      * Raise the lift RobotConstants.LIFT_TICKS_ATON ticks from where it is when the state starts

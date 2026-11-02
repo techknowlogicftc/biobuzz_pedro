@@ -24,15 +24,15 @@ package org.firstinspires.ftc.teamcode.opmodes.teleop;
  * - B button: Toggle nectar launcher (on at RobotConstants.NEAR_LAUNCH_SPEED, press again to stop);
  *   the nectar gate opens automatically once the launcher reaches speed
  * - Right bumper: Add RobotConstants.LAUNCHER_SPEED_STEP to every running launcher
- *   and RobotConstants.INTAKE_SPEED_STEP to the intake/outtake if it is running
  * - Left bumper: Subtract RobotConstants.LAUNCHER_SPEED_STEP from every running launcher
- *   and RobotConstants.INTAKE_SPEED_STEP from the intake/outtake if it is running
  * - Dpad left: Toggle pollen gate servo (open, press again to close)
  * - Dpad right: Toggle nectar gate servo (open, press again to close)
  *
  * GAMEPAD2 CONTROLS (Operator):
  * - Y button: Toggle intake (press again to stop)
  * - A button: Toggle outtake (press again to stop)
+ * - Right bumper: Add RobotConstants.INTAKE_SPEED_STEP to the intake/outtake if it is running
+ * - Left bumper: Subtract RobotConstants.INTAKE_SPEED_STEP from the intake/outtake if it is running
  *
  * Subclasses must implement:
  * - getAllianceConfig(): Provide alliance-specific configuration (Blue/Red)
@@ -44,6 +44,7 @@ import com.pedropathing.api.Paths;
 import com.pedropathing.math.Pose;
 import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.Gamepad;
 
 import org.firstinspires.ftc.teamcode.mechanisms.IntakeUtil;
 import org.firstinspires.ftc.teamcode.mechanisms.LauncherUtil;
@@ -70,7 +71,8 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
     protected DrivePowers lastDrivePowers = DrivePowers.zero();  // Last powers sent to the follower (for telemetry)
     protected boolean aligning = false;             // Tracks whether goal alignment is active (both bumpers held)
     protected boolean aligned = false;              // Tracks whether the robot is facing the goal tag
-    protected int speedSteps = 0;                   // Bumper speed adjustment this loop: +1 faster, -1 slower, 0 none
+    protected int speedSteps = 0;                   // Gamepad1 bumper launcher adjustment this loop: +1 faster, -1 slower, 0 none
+    protected int intakeSpeedSteps = 0;             // Gamepad2 bumper intake adjustment this loop: +1 faster, -1 slower, 0 none
     protected boolean pollenGatePending = false;    // Pollen launcher started with X; open its gate once at speed
     protected boolean nectarGatePending = false;    // Nectar launcher started with B; open its gate once at speed
     protected boolean drivingToShootingPosition = false;  // Following the path to the shooting position (both bumpers held)
@@ -111,7 +113,7 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
             // MANUAL DRIVE CONTROL (GAMEPAD1)
             handleManualControl();
 
-            // BUMPER SPEED ADJUSTMENT (GAMEPAD1) - shared by launcher and intake
+            // BUMPER SPEED ADJUSTMENT - gamepad1 for launchers, gamepad2 for intake
             readSpeedAdjustButtons();
 
             // LAUNCHER CONTROL (GAMEPAD1)
@@ -230,20 +232,25 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
     }*/
 
     /**
-     * Reads the bumper edges once per loop so the launcher and intake both see the same press
+     * Reads the bumper edges once per loop - gamepad1 bumpers adjust the launchers, gamepad2 bumpers the intake
      */
     protected void readSpeedAdjustButtons() {
-        boolean leftBumperPressed = gamepad1.leftBumperWasPressed();
-        boolean rightBumperPressed = gamepad1.rightBumperWasPressed();
+        speedSteps = readBumperSteps(gamepad1);
+        intakeSpeedSteps = readBumperSteps(gamepad2);
+    }
 
-        // Right bumper = faster, left bumper = slower (both pressed together cancel out)
-        speedSteps = 0;
-        if (rightBumperPressed) {
-            speedSteps++;
+    /**
+     * Right bumper = faster (+1), left bumper = slower (-1); both pressed together cancel out
+     */
+    protected int readBumperSteps(Gamepad gamepad) {
+        int steps = 0;
+        if (gamepad.rightBumperWasPressed()) {
+            steps++;
         }
-        if (leftBumperPressed) {
-            speedSteps--;
+        if (gamepad.leftBumperWasPressed()) {
+            steps--;
         }
+        return steps;
     }
 
     /**
@@ -262,7 +269,7 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
                 launcher.stopPollen();
                 pollenGatePending = false;
             } else {
-                launcher.setPollenSpeed(RobotConstants.NEAR_LAUNCH_SPEED);
+                launcher.setPollenSpeed(RobotConstants.CENTER_POLLEN_LAUNCH_SPEED);
                 pollenGatePending = true;
             }
         } else if (speedChange != 0 && launcher.isPollenOn()) {
@@ -275,7 +282,7 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
                 launcher.stopNectar();
                 nectarGatePending = false;
             } else {
-                launcher.setNectarSpeed(RobotConstants.NEAR_LAUNCH_SPEED);
+                launcher.setNectarSpeed(RobotConstants.CENTER_NECTAR_LAUNCH_SPEED);
                 nectarGatePending = true;
             }
         } else if (speedChange != 0 && launcher.isNectarOn()) {
@@ -327,9 +334,9 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
             } else {
                 intake.outtake();
             }
-        } else if (speedSteps != 0 && intake.isOn()) {
-            // Gamepad1 bumpers adjust speed while intake or outtake is running
-            intake.setSpeed(adjustIntakeSpeed(currentSpeed, speedSteps * RobotConstants.INTAKE_SPEED_STEP));
+        } else if (intakeSpeedSteps != 0 && intake.isOn()) {
+            // Gamepad2 bumpers adjust speed while intake or outtake is running
+            intake.setSpeed(adjustIntakeSpeed(currentSpeed, intakeSpeedSteps * RobotConstants.INTAKE_SPEED_STEP));
         }
     }
 
@@ -358,34 +365,8 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
      */
     protected void handleShootingPosition(){
         boolean bothBumpers = gamepad1.left_bumper && gamepad1.right_bumper;
-
-        if (!bothBumpers) {
-            // Bumpers released - stop following; handleManualControl takes over next loop
-            drivingToShootingPosition = false;
-            return;
-        }
-
-        if (drivingToShootingPosition) {
+        if(bothBumpers)
             telemetry.addData("Shooting Position", follower.isBusy() ? "DRIVING" : "ARRIVED");
-            return;
-        }
-
-        Pose currentPose = follower.pose();
-        boolean inZone = currentPose.x() > RobotConstants.SHOOTING_ZONE_MIN_X
-            && currentPose.x() < RobotConstants.SHOOTING_ZONE_MAX_X
-            && currentPose.y() < RobotConstants.SHOOTING_ZONE_MAX_Y;
-        if (!inZone) {
-            telemetry.addData("Shooting Position", "OUT OF ZONE");
-            return;
-        }
-
-        Pose targetPose = new Pose(RobotConstants.SHOOTING_POSITION_X, RobotConstants.SHOOTING_POSITION_Y,
-            Math.toRadians(RobotConstants.SHOOTING_POSITION_HEADING_DEG));
-        Path path = Paths.line(currentPose, targetPose)
-            .linear(currentPose, targetPose)
-            .with(Constants.foresightConfig.maxPathSpeed.at(RobotConstants.SHOOTING_POSITION_PATH_SPEED));
-        follower.follow(path);
-        drivingToShootingPosition = true;
     }
 
     /**
@@ -439,9 +420,9 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
 
         telemetry.addData("Gamepad1 Controls", String.format("X=Pollen On(%d)/Off, B=Nectar On/Off, RB=+%d, LB=-%d, RT=Slow, LB+RB=Shoot Pos, DpadL=Pollen Gate, DpadR=Nectar Gate",
             RobotConstants.NEAR_LAUNCH_SPEED, RobotConstants.LAUNCHER_SPEED_STEP, RobotConstants.LAUNCHER_SPEED_STEP));
-        telemetry.addData("Intake Controls", String.format("GP2 Y=Intake On/Off, GP2 A=Outtake On/Off, GP1 RB=+%d, GP1 LB=-%d",
+        telemetry.addData("Intake Controls", String.format("GP2 Y=Intake On/Off, GP2 A=Outtake On/Off, GP2 RB=+%d, GP2 LB=-%d",
             RobotConstants.INTAKE_SPEED_STEP, RobotConstants.INTAKE_SPEED_STEP));
-        telemetry.addData("Gamepad2 Controls", "Y=Intake, A=Outtake");
+        telemetry.addData("Gamepad2 Controls", "Y=Intake, A=Outtake, RB/LB=Intake Speed");
         telemetry.update();
     }
 
