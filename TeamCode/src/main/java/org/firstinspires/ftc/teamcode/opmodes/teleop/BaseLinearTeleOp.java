@@ -92,12 +92,19 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
         // Initialize hardware components
         initializeHardware();
 
-        telemetry.addData("Alliance", allianceConfig.getAllianceName());
-        telemetry.addData("Status", "Initialized - Waiting for start");
-        telemetry.update();
+        // Init loop (equivalent to init_loop()): keep odometry live so the start pose can be checked
+        String poseSource = PoseHolder.getCurrentPose() != null ? "Autonomous" : "Alliance home";
+        while (opModeInInit()) {
+            follower.update();
 
-        // Wait for the game to start (driver presses PLAY)
-        waitForStart();
+            Pose pose = follower.pose();
+            telemetry.addData("Alliance", allianceConfig.getAllianceName());
+            telemetry.addData("Status", "Initialized - Waiting for start");
+            telemetry.addData("Pose Source", poseSource);
+            telemetry.addData("Pose", String.format("(%.1f, %.1f, %.1f°)",
+                pose.x(), pose.y(), Math.toDegrees(pose.heading())));
+            telemetry.update();
+        }
 
         // START PHASE (equivalent to start())
         if (isStopRequested()) return;

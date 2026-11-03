@@ -150,21 +150,21 @@ public class RobotConstants {
     public static final double RED_AF_SHOOTING_POSITION_Y = 10;
     public static final double RED_AF_SHOOTING_POSITION_HEADING_DEG = 90;
 
-    public static final double RED_SF_SHOOTING_POSITION_X = 57;        // Where it drives to (inches)
-    public static final double RED_SF_SHOOTING_POSITION_Y = 10;
+    public static final double RED_SF_SHOOTING_POSITION_X = 61;        // Where it drives to (inches)
+    public static final double RED_SF_SHOOTING_POSITION_Y = 134;
 
     public static final double BLUE_SF_SHOOTING_ZONE_MIN_X = 87;        // Zone the robot must be in to start (inches)
     public static final double BLUE_SF_SHOOTING_ZONE_MAX_X = 135;
     public static final double BLUE_SF_SHOOTING_ZONE_MAX_Y = 48;
 
-    public static final double BLUE_SF_SHOOTING_POSITION_HEADING_DEG = 270;
+    public static final double BLUE_AF_SHOOTING_POSITION_X = 84;        // Where it drives to (inches)
+    public static final double BLUE_AF_SHOOTING_POSITION_Y = 134;
+    public static final double BLUE_AF_SHOOTING_POSITION_HEADING_DEG = 270;
 
-    public static final double BLUE_AF_SHOOTING_POSITION_X = 57;        // Where it drives to (inches)
-    public static final double BLUE_AF_SHOOTING_POSITION_Y = 10;
-    public static final double BLUE_AF_SHOOTING_POSITION_HEADING_DEG = 90;
-
-    public static final double BLUE_SF_SHOOTING_POSITION_X = 57;        // Where it drives to (inches)
+    public static final double BLUE_SF_SHOOTING_POSITION_X = 84;        // Where it drives to (inches)
     public static final double BLUE_SF_SHOOTING_POSITION_Y = 10;
+
+    public static final double BLUE_SF_SHOOTING_POSITION_HEADING_DEG = 90;
 
     public static final double SHOOTING_POSITION_PATH_SPEED = 0.5;  // Max path speed while driving there
     public static final long LIFT_TIMEOUT_MS = 2000;  // 2 second timeout for an autonomous LIFT_UP / LIFT_DOWN move

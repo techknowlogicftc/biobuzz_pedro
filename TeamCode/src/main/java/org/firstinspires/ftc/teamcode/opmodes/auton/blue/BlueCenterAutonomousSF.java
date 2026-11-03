@@ -21,7 +21,7 @@ import com.pedropathing.paths.Path;
  *
  * Alliance-specific poses come from AllianceConfig / LaunchTarget; the sequence itself is shared logic.
  */
-@Autonomous(name = "Blue-Center-SF", group = "Blue-Center-SF")
+@Autonomous(name = "Blue-Center-AF", group = "Blue-Center-AF")
 public class BlueCenterAutonomousSF extends BaseLinearAutonomous {
 
     @Override

@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.opmodes.auton.blue;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 import org.firstinspires.ftc.teamcode.opmodes.AllianceConfig;
 import org.firstinspires.ftc.teamcode.opmodes.auton.BaseLinearAutonomous;
@@ -17,7 +18,9 @@ import java.util.List;
  *
  * Alliance-specific poses come from AllianceConfig / LaunchTarget; the sequence itself is shared logic.
  */
+
 @Autonomous(name = "Blue-SideLaunch-AF", group = "Blue-SideLaunch-AF")
+@Disabled
 public class BlueSideLaunchAutonomousAF extends BaseLinearAutonomous {
 
     @Override

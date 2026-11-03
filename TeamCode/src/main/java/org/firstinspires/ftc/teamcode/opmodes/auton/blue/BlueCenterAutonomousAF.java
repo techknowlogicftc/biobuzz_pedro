@@ -21,7 +21,7 @@ import java.util.List;
  *
  * Alliance-specific poses come from AllianceConfig / LaunchTarget; the sequence itself is shared logic.
  */
-@Autonomous(name = "Blue-Center-AF", group = "Blue-Center-AF")
+@Autonomous(name = "Blue-Center-SF", group = "Blue-Center-SF")
 public class BlueCenterAutonomousAF extends BaseLinearAutonomous {
 
     @Override
@@ -35,7 +35,7 @@ public class BlueCenterAutonomousAF extends BaseLinearAutonomous {
 
         // Start launcher motors
         sequence.add(state(AutonomousState.START_POLLEN_LAUNCHER));
-        sequence.add(waitMs(1000));
+        sequence.add(waitMs(3000));
         sequence.add(state(AutonomousState.CLOSE_POLLEN_SERVO));
         sequence.add(waitMs(1000));
         sequence.add(state(AutonomousState.START_INTAKE));
