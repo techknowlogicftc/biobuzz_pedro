@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes.teleop;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.mechanisms.LiftUtil;
@@ -14,6 +15,7 @@ import org.firstinspires.ftc.teamcode.mechanisms.LiftUtil;
  * - gamepad1.left_stick_y: Push up to raise, pull down to lower; release to stop
  */
 @TeleOp(name = "Lift Test", group = "Test")
+@Disabled
 public class LiftTestTeleOp extends OpMode {
 
     private static final double STICK_DEADBAND = 0.05;  // Ignore stick values below this

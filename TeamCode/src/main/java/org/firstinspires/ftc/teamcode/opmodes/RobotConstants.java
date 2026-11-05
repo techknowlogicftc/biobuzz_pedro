@@ -161,8 +161,8 @@ public class RobotConstants {
     public static final double BLUE_AF_SHOOTING_POSITION_Y = 134;
     public static final double BLUE_AF_SHOOTING_POSITION_HEADING_DEG = 270;
 
-    public static final double BLUE_SF_SHOOTING_POSITION_X = 84;        // Where it drives to (inches)
-    public static final double BLUE_SF_SHOOTING_POSITION_Y = 10;
+    public static final double BLUE_SF_SHOOTING_POSITION_X = 83;        // Where it drives to (inches)
+    public static final double BLUE_SF_SHOOTING_POSITION_Y = 14;
 
     public static final double BLUE_SF_SHOOTING_POSITION_HEADING_DEG = 90;
 

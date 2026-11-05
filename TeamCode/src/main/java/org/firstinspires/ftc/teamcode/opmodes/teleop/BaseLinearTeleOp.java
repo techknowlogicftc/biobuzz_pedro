@@ -274,6 +274,8 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
         if (xPressed) {
             if (launcher.isPollenOn()) {
                 launcher.stopPollen();
+                intake.stop();
+                servos.openPollen();
                 pollenGatePending = false;
             } else {
                 launcher.setPollenSpeed(RobotConstants.CENTER_POLLEN_LAUNCH_SPEED);
@@ -287,6 +289,8 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
         if (bPressed) {
             if (launcher.isNectarOn()) {
                 launcher.stopNectar();
+                intake.stop();
+                servos.openNectar();
                 nectarGatePending = false;
             } else {
                 launcher.setNectarSpeed(RobotConstants.CENTER_NECTAR_LAUNCH_SPEED);
@@ -299,10 +303,12 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
         // Open each gate once its launcher (started with X / B) has reached speed - checked every loop
         if (pollenGatePending && isLauncherAtSpeed(launcher.getPollenTargetSpeed(), launcher.getPollenVelocity())) {
             servos.closePollen();
+            intake.intake();
             pollenGatePending = false;
         }
         if (nectarGatePending && isLauncherAtSpeed(launcher.getNectarTargetSpeed(), launcher.getNectarVelocity())) {
             servos.closeNectar();
+            intake.intake();
             nectarGatePending = false;
         }
     }

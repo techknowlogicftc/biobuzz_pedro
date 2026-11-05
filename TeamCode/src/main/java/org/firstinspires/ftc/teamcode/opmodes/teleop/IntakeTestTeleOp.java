@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes.teleop;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.mechanisms.IntakeUtil;
@@ -21,6 +22,7 @@ import org.firstinspires.ftc.teamcode.opmodes.RobotConstants;
  * - gamepad1.right_trigger / left_trigger: Hold to run in / out proportionally; release to stop
  */
 @TeleOp(name = "Intake Test", group = "Test")
+@Disabled
 public class IntakeTestTeleOp extends OpMode {
 
     private IntakeUtil intake;

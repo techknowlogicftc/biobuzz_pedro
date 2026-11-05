@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes.teleop;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -17,6 +18,7 @@ import com.qualcomm.robotcore.hardware.Servo;
  * connected servos are able to move freely before running this test.
  */
 @TeleOp(name = "Scan Servo Test", group = "Test")
+@Disabled
 public class ScanServoTestTeleOp extends LinearOpMode {
 
     static final double INCREMENT   = 0.01;     // amount to slew servo each CYCLE_MS cycle

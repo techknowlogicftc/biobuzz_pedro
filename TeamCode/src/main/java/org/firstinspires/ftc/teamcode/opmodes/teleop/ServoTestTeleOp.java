@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes.teleop;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.mechanisms.ServoUtil;
@@ -17,6 +18,7 @@ import org.firstinspires.ftc.teamcode.mechanisms.ServoUtil;
  * - gamepad1.b: Toggle pollen gate open/closed
  */
 @TeleOp(name = "Servo Test", group = "Test")
+@Disabled
 public class ServoTestTeleOp extends OpMode {
 
     private ServoUtil servos;
