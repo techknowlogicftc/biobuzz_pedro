@@ -51,10 +51,11 @@ public class RobotConstants {
     public static final double SERVO_REST_POSITION = 0.4;  // Servo rest position
     public static final double LAUNCHER_VELOCITY_TOLERANCE_LOWER = 0.03;  // 3% tolerance below target for launcher speed check
     public static final double LAUNCHER_VELOCITY_TOLERANCE_UPPER = 0.05;  // 5% tolerance above target for launcher speed check
+    public static final long GATE_DELAY_MS = 6000;  // Teleop: wait after a launcher reaches speed before its gate feeds (lets it settle)
     
     // Launcher gate servo positions (0..1) - starting values, not yet tuned on the robot
-    public static final double POLLEN_SERVO_OPEN_POSITION = 1.0;    // Pollen gate open (feeds launcher)
-    public static final double POLLEN_SERVO_CLOSED_POSITION = 0.0;  // Pollen gate closed
+    public static final double POLLEN_SERVO_OPEN_POSITION = 0.65;    // Pollen gate open (feeds launcher)
+    public static final double POLLEN_SERVO_CLOSED_POSITION = 0.50;  // Pollen gate closed
     public static final double NECTAR_SERVO_OPEN_POSITION = 0.6;    // Nectar gate open (feeds launcher)
     public static final double NECTAR_SERVO_CLOSED_POSITION = 0.33;  // Nectar gate closed
 
@@ -70,8 +71,8 @@ public class RobotConstants {
     
     // Launcher velocity constants (ticks per second)
     public static final int NEAR_LAUNCH_SPEED = 1200;         // Full speed for normal launch (teleop)
-    public static final int CENTER_POLLEN_LAUNCH_SPEED = 1150;
-    public static final int SIDE_POLLEN_LAUNCH_SPEED = 1150;
+    public static final int CENTER_POLLEN_LAUNCH_SPEED = 1125;
+    public static final int SIDE_POLLEN_LAUNCH_SPEED = 1125;
 
     public static final int CENTER_NECTAR_LAUNCH_SPEED = 1250;
     public static final int SIDE_NECTAR_LAUNCH_SPEED = 1250;
@@ -81,7 +82,7 @@ public class RobotConstants {
     public static final int LAUNCHER_STOP_SPEED = 0;            // Stop speed
     public static final int LAUNCHER_MAX_SPEED = 3000;          // Max speed for variable (trigger) control
     public static final double LAUNCHER_TICKS_PER_REV = 28;     // Encoder ticks per motor revolution
-    public static final int LAUNCHER_SPEED_STEP = 50;           // Bumper speed adjustment per press (teleop)
+    public static final int LAUNCHER_SPEED_STEP = 5;           // Bumper speed adjustment per press (teleop)
 
     // Launcher test speeds (ticks per second) - X / A / B buttons in LaunchTestTeleOp
     public static final int LAUNCH_TEST_SPEED_1 = 300;
@@ -93,7 +94,7 @@ public class RobotConstants {
     public static final int OUTTAKE_SPEED = -400;              // Push game pieces back out
     public static final int MAX_INTAKE_SPEED = 1200;            // Max speed for variable (trigger) control
     public static final int INTAKE_STOP_SPEED = 0;              // Stop speed
-    public static final int INTAKE_SPEED_STEP = 25;             // Bumper speed adjustment per press (teleop)
+    public static final int INTAKE_SPEED_STEP = 5;             // Bumper speed adjustment per press (teleop)
     public static final int INTAKE_ADJUST_MAX_SPEED = 2000;     // Cap for bumper speed adjustment (teleop)
 
     // Lift velocity constants (ticks per second) - starting values, not yet tuned on the robot

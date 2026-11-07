@@ -45,6 +45,7 @@ import com.pedropathing.math.Pose;
 import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.Gamepad;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.mechanisms.IntakeUtil;
 import org.firstinspires.ftc.teamcode.mechanisms.LauncherUtil;
@@ -75,6 +76,10 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
     protected int intakeSpeedSteps = 0;             // Gamepad2 bumper intake adjustment this loop: +1 faster, -1 slower, 0 none
     protected boolean pollenGatePending = false;    // Pollen launcher started with X; open its gate once at speed
     protected boolean nectarGatePending = false;    // Nectar launcher started with B; open its gate once at speed
+    protected boolean pollenAtSpeed = false;        // Pollen launcher reached speed; waiting out RobotConstants.GATE_DELAY_MS
+    protected boolean nectarAtSpeed = false;        // Nectar launcher reached speed; waiting out RobotConstants.GATE_DELAY_MS
+    protected ElapsedTime pollenGateTimer = new ElapsedTime();  // Time since the pollen launcher reached speed
+    protected ElapsedTime nectarGateTimer = new ElapsedTime();  // Time since the nectar launcher reached speed
     protected boolean drivingToShootingPosition = false;  // Following the path to the shooting position (both bumpers held)
 
     /**
@@ -277,6 +282,7 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
                 intake.stop();
                 servos.openPollen();
                 pollenGatePending = false;
+                pollenAtSpeed = false;
             } else {
                 launcher.setPollenSpeed(RobotConstants.CENTER_POLLEN_LAUNCH_SPEED);
                 pollenGatePending = true;
@@ -292,6 +298,7 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
                 intake.stop();
                 servos.openNectar();
                 nectarGatePending = false;
+                nectarAtSpeed = false;
             } else {
                 launcher.setNectarSpeed(RobotConstants.CENTER_NECTAR_LAUNCH_SPEED);
                 nectarGatePending = true;
@@ -300,16 +307,30 @@ public abstract class BaseLinearTeleOp extends LinearOpMode {
             launcher.setNectarSpeed(adjustLauncherSpeed(launcher.getNectarTargetSpeed(), speedChange));
         }
 
-        // Open each gate once its launcher (started with X / B) has reached speed - checked every loop
-        if (pollenGatePending && isLauncherAtSpeed(launcher.getPollenTargetSpeed(), launcher.getPollenVelocity())) {
+        // Open each gate RobotConstants.GATE_DELAY_MS after its launcher (started with X / B) first reaches speed.
+        // Non-blocking: the timer is checked every loop so driving keeps working during the wait
+        if (pollenGatePending && !pollenAtSpeed
+                && isLauncherAtSpeed(launcher.getPollenTargetSpeed(), launcher.getPollenVelocity())) {
+            pollenAtSpeed = true;
+            pollenGateTimer.reset();
+        }
+        if (pollenAtSpeed && pollenGateTimer.milliseconds() >= RobotConstants.GATE_DELAY_MS) {
             servos.closePollen();
             intake.intake();
             pollenGatePending = false;
+            pollenAtSpeed = false;
         }
-        if (nectarGatePending && isLauncherAtSpeed(launcher.getNectarTargetSpeed(), launcher.getNectarVelocity())) {
+
+        if (nectarGatePending && !nectarAtSpeed
+                && isLauncherAtSpeed(launcher.getNectarTargetSpeed(), launcher.getNectarVelocity())) {
+            nectarAtSpeed = true;
+            nectarGateTimer.reset();
+        }
+        if (nectarAtSpeed && nectarGateTimer.milliseconds() >= RobotConstants.GATE_DELAY_MS) {
             servos.closeNectar();
             intake.intake();
             nectarGatePending = false;
+            nectarAtSpeed = false;
         }
     }
 
