@@ -14,10 +14,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Red Alliance center autonomous:
- * 1. Move to near launch position and pause (add mechanism states here)
- * 2. PPG collection cycle (move to intake start, slow move to intake end)
- * 3. Return to auton end position
+ * Red Alliance center autonomous (AF):
+ * 1. Spin up the pollen launcher, close the pollen gate and feed with the intake (timed, no Limelight)
+ * 2. Stop the launcher and intake, then open the pollen gate
+ * 3. Return to auton end position (AUTON_END)
  *
  * Alliance-specific poses come from AllianceConfig / LaunchTarget; the sequence itself is shared logic.
  */
@@ -35,7 +35,7 @@ public class RedCenterAutonomousAF extends BaseLinearAutonomous {
 
         // Start launcher motors
         sequence.add(state(AutonomousState.START_POLLEN_LAUNCHER));
-        sequence.add(waitMs(3000));
+        sequence.add(waitMs(6000));
         sequence.add(state(AutonomousState.CLOSE_POLLEN_SERVO));
         sequence.add(waitMs(1000));
         sequence.add(state(AutonomousState.START_INTAKE));
