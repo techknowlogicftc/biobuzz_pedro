@@ -85,8 +85,12 @@ public class RobotConstants {
     public static final int LAUNCHER_SPEED_STEP = 5;           // Bumper speed adjustment per press (teleop)
 
     // Added 2026-11-23: launcher velocity PIDF tuning coefficients.
-    // Launcher velocity PIDF coefficients (for RUN_USING_ENCODER mode)
-    // Tune F from measured full-battery max ticks/sec: F = 32767.0 / maxTicksPerSec
+    // These are starting values for RUN_USING_ENCODER velocity control, not guaranteed final tuning.
+    // P corrects current speed error; I corrects error that persists over time; D dampens rapid changes;
+    // F provides the baseline output needed to maintain speed. Tune Pollen and Nectar independently.
+    // Change one value by a small amount at a time, test safely, and compare target vs. measured speed.
+    // Too much P or I can cause overshoot/oscillation; D can amplify encoder noise. Estimate F from
+    // measured maximum speed at full battery: F = 32767.0 / maxTicksPerSec.
     public static final double POLLEN_PIDF_P = 1.2;    // Proportional gain: reacts to current velocity error
     public static final double POLLEN_PIDF_I = 0.0;    // Integral gain: start at 0.0 (or small e.g. 0.1 * P) to avoid overshoot
     public static final double POLLEN_PIDF_D = 0.0;    // Derivative gain: usually 0.0 for flywheels
