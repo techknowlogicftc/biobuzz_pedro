@@ -102,7 +102,7 @@ public class RobotConstants {
     // - I (Integral = 0.0): Left at zero to prevent windup and oscillation.
     // - D (Derivative = 0.2): Damps rapid speed changes and helps the flywheel settle.
     // - F (Feedforward = 15.35): Supplies the baseline output needed to maintain 1125 ticks/sec.
-    public static final double POLLEN_PIDF_P = 20.0;   // Proportional gain: strong correction for reaching target in ~1 second
+    public static final double POLLEN_PIDF_P = 15.0;   // Proportional gain: strong correction for reaching target in ~1 second
     public static final double POLLEN_PIDF_I = 0.1;    // Integral gain: zero avoids windup and overshoot
     public static final double POLLEN_PIDF_D = 0.2;    // Derivative gain: dampens rapid speed changes
     public static final double POLLEN_PIDF_F = 15.35;   // Feed-forward gain: calibrated baseline power for 1125 ticks/sec
