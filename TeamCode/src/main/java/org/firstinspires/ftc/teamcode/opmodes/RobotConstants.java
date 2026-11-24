@@ -49,13 +49,23 @@ public class RobotConstants {
     public static final double SERVO_RETRACT_DELAY_MS = 700;  // Total time at push position before retract (700ms = 250ms settling + 450ms pushing)
     public static final double SERVO_PUSH_POSITION = 0.4429;  // Servo position to push ball
     public static final double SERVO_REST_POSITION = 0.4;  // Servo rest position
-    public static final double LAUNCHER_VELOCITY_TOLERANCE_LOWER = 0.03;  // 3% tolerance below target for launcher speed check
-    public static final double LAUNCHER_VELOCITY_TOLERANCE_UPPER = 0.05;  // 5% tolerance above target for launcher speed check
-    public static final long GATE_DELAY_MS = 3000;  // Teleop: wait after a launcher reaches speed before its gate feeds (lets it settle)
+    // --- [START 2026-11-24: Fast Gate Release & Speed Tolerance Tuning] ---
+    // Tolerance window for "AT SPEED" validation:
+    // - LOWER: 5% (0.05) below target (e.g. 1125 - 5% = 1068 ticks/s).
+    // - UPPER: 8% (0.08) above target (e.g. 1125 + 8% = 1215 ticks/s).
+    // - GATE_DELAY_MS set to 0: Eliminates the 3-second delay so the gate feeds immediately
+    //   as soon as the flywheel reaches target speed.
+    public static final double LAUNCHER_VELOCITY_TOLERANCE_LOWER = 0.05;  // 5% tolerance below target for launcher speed check
+    public static final double LAUNCHER_VELOCITY_TOLERANCE_UPPER = 0.08;  // 8% tolerance above target for launcher speed check
+    public static final long GATE_DELAY_MS = 0;  // Teleop: 0ms wait after launcher reaches speed to immediately feed
+    // --- [END 2026-11-24: Fast Gate Release & Speed Tolerance Tuning] ---
     
-    // Launcher gate servo positions (0..1) - starting values, not yet tuned on the robot
-    public static final double POLLEN_SERVO_OPEN_POSITION = 0.65;    // Pollen gate open (feeds launcher)
-    public static final double POLLEN_SERVO_CLOSED_POSITION = 0.50;  // Pollen gate closed
+    // --- [START 2026-11-24: Invert Pollen Gate Servo Positions] ---
+    // "Closed" is the physical OPEN position because of the servo mounting.
+    // 0.65 keeps the gate closed while spinning up; 0.50 is the command used to feed.
+    public static final double POLLEN_SERVO_OPEN_POSITION = 0.65;    // Pollen gate command OPEN (physically closed)
+    public static final double POLLEN_SERVO_CLOSED_POSITION = 0.50;  // Pollen gate command CLOSED (physically open)
+    // --- [END 2026-11-24: Invert Pollen Gate Servo Positions] ---
     public static final double NECTAR_SERVO_OPEN_POSITION = 0.6;    // Nectar gate open (feeds launcher)
     public static final double NECTAR_SERVO_CLOSED_POSITION = 0.33;  // Nectar gate closed
 
@@ -81,26 +91,27 @@ public class RobotConstants {
     public static final int LAUNCHER_DUMMY_SPEED = 1000;        // Half speed for dummy launch
     public static final int LAUNCHER_STOP_SPEED = 0;            // Stop speed
     public static final int LAUNCHER_MAX_SPEED = 3000;          // Max speed for variable (trigger) control
+    public static final double POLLEN_GATE_OPEN_LOWER_SPEED = 1120.0;
+    public static final double POLLEN_GATE_OPEN_UPPER_SPEED = 1125.0;
     public static final double LAUNCHER_TICKS_PER_REV = 28;     // Encoder ticks per motor revolution
     public static final int LAUNCHER_SPEED_STEP = 5;           // Bumper speed adjustment per press (teleop)
 
-    // --- [START 2026-11-23: Launcher velocity PIDF tuning coefficients] ---
-    // These are starting values for RUN_USING_ENCODER velocity control, not guaranteed final tuning.
-    // P corrects current speed error; I corrects error that persists over time; D dampens rapid changes;
-    // F provides the baseline output needed to maintain speed. Tune Pollen and Nectar independently.
-    // Change one value by a small amount at a time, test safely, and compare target vs. measured speed.
-    // Too much P or I can cause overshoot/oscillation; D can amplify encoder noise. Estimate F from
-    // measured maximum speed at full battery: F = 32767.0 / maxTicksPerSec.
-    public static final double POLLEN_PIDF_P = 1.2;    // Proportional gain: reacts to current velocity error
-    public static final double POLLEN_PIDF_I = 0.0;    // Integral gain: start at 0.0 (or small e.g. 0.1 * P) to avoid overshoot
-    public static final double POLLEN_PIDF_D = 0.0;    // Derivative gain: usually 0.0 for flywheels
-    public static final double POLLEN_PIDF_F = 12.0;   // Feed-forward gain: baseline power for target speed
+    // --- [START 2026-11-24: Tuned Launcher Velocity PIDF Coefficients] ---
+    // Velocity PIDF tuning coefficients calibrated via bench testing (2026-11-24):
+    // - P (Proportional = 15.0): Applies strong correction so the flywheel reaches 1125 ticks/sec quickly.
+    // - I (Integral = 0.0): Left at zero to prevent windup and oscillation.
+    // - D (Derivative = 0.2): Damps rapid speed changes and helps the flywheel settle.
+    // - F (Feedforward = 15.35): Supplies the baseline output needed to maintain 1125 ticks/sec.
+    public static final double POLLEN_PIDF_P = 10.0;   // Proportional gain: strong correction for reaching target in ~1 second
+    public static final double POLLEN_PIDF_I = 0.1;    // Integral gain: zero avoids windup and overshoot
+    public static final double POLLEN_PIDF_D = 0.2;    // Derivative gain: dampens rapid speed changes
+    public static final double POLLEN_PIDF_F = 15.35;   // Feed-forward gain: calibrated baseline power for 1125 ticks/sec
 
     public static final double NECTAR_PIDF_P = 1.2;    // Proportional gain for nectar launcher motor
-    public static final double NECTAR_PIDF_I = 0.0;    // Integral gain for nectar launcher motor
+    public static final double NECTAR_PIDF_I = 0.1;    // Integral gain for nectar launcher motor
     public static final double NECTAR_PIDF_D = 0.0;    // Derivative gain for nectar launcher motor
-    public static final double NECTAR_PIDF_F = 12.0;   // Feed-forward gain for nectar launcher motor
-    // --- [END 2026-11-23: Launcher velocity PIDF tuning coefficients] ---
+    public static final double NECTAR_PIDF_F = 16.0;   // Feed-forward gain: calibrated baseline power for nectar launcher
+    // --- [END 2026-11-24: Tuned Launcher Velocity PIDF Coefficients] ---
 
 
 

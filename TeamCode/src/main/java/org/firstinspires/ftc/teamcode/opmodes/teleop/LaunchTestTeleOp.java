@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import org.firstinspires.ftc.teamcode.mechanisms.ServoUtil;
 import org.firstinspires.ftc.teamcode.opmodes.RobotConstants;
 
 import java.util.Locale;
@@ -16,6 +17,8 @@ import java.util.Locale;
  * - 2026-11-23: Added live in-situ velocity PIDF tuning for the Pollen launcher motor,
  *   inspired by FlywheelTunerTutorial, allowing real-time adjustment of P and F gains
  *   from Gamepad 1 without recompiling and redeploying code.
+ * - 2026-11-24: Added gate servo controls (RB=Pollen Gate, LB=Nectar Gate) and gate status
+ *   telemetry so drivers can test ball feeding and recovery time during flywheel tuning.
  *
  * USAGE & CONTROLS (GAMEPAD 1):
  * ---------------------------------------------------------------------------------
@@ -25,9 +28,11 @@ import java.util.Locale;
  *    - Left Trigger: Hold for variable Pollen speed (0 up to LAUNCHER_MAX_SPEED).
  *    - Right Trigger: Hold for variable Nectar speed (0 up to LAUNCHER_MAX_SPEED).
  *
- * 2. LIVE POLLEN PIDF TUNING:
+ * 2. LIVE POLLEN PIDF TUNING & GATE CONTROL:
  *    - D-Pad UP / DOWN:    Increase / decrease P (Proportional gain) by current step size.
  *    - D-Pad RIGHT / LEFT: Increase / decrease F (Feedforward gain) by current step size.
+ *    - Right Bumper (RB):  Toggle Pollen gate servo OPEN / CLOSED (Added: 2026-11-24).
+ *    - Left Bumper (LB):   Toggle Nectar gate servo OPEN / CLOSED (Added: 2026-11-24).
  *    - [B] Button:         Cycle tuning step size [0.01, 0.05, 0.10, 0.50, 1.00, 5.00].
  *    - [X] Button:         Emergency reset of P, I, D, F back to RobotConstants defaults.
  *
@@ -36,6 +41,7 @@ import java.util.Locale;
  *    - Velocity Error (Target - Current)
  *    - Actual Motor RPM
  *    - Active P & F values and active Step Size
+ *    - Pollen Gate State (OPEN / CLOSED)
  *
  * POST-TESTING INSTRUCTIONS (WHAT TO DO AFTER TESTING):
  * ---------------------------------------------------------------------------------
@@ -54,6 +60,13 @@ public class LaunchTestTeleOp extends OpMode {
     // Hardware components
     protected DcMotorEx launch1;      // "launchpollen"
     protected DcMotorEx launch2;      // "launchnectar"
+
+    // --- [START 2026-11-24: Gate Servo Integration for Testing Feeder with Flywheel] ---
+    protected ServoUtil servos;       // Gate servos ("pollen", "nectar")
+    // --- [START 2026-11-24: Latch Pollen Gate Open After Reaching Speed] ---
+    protected boolean pollenGateOpenedAtSpeed = false;
+    // --- [END 2026-11-24: Latch Pollen Gate Open After Reaching Speed] ---
+    // --- [END 2026-11-24: Gate Servo Integration for Testing Feeder with Flywheel] ---
 
     protected boolean launcherOn = false;
     protected boolean leftTriggerActive = false;
@@ -79,6 +92,11 @@ public class LaunchTestTeleOp extends OpMode {
         // Initialize hardware motors from hardware map
         launch1 = hardwareMap.get(DcMotorEx.class, "launchpollen");
         launch2 = hardwareMap.get(DcMotorEx.class, "launchnectar");
+
+        // --- [START 2026-11-24: Initialize Gate Servos for Flywheel Testing] ---
+        servos = new ServoUtil();
+        servos.init(hardwareMap);
+        // --- [END 2026-11-24: Initialize Gate Servos for Flywheel Testing] ---
 
         // Configure launcher motors for encoder-based velocity control
         launch1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -161,15 +179,51 @@ public class LaunchTestTeleOp extends OpMode {
             launch1.setVelocityPIDFCoefficients(pollenP, pollenI, pollenD, pollenF);
         }
 
+        // --- [START 2026-11-24: Manual Gate Servo Bumper Controls (RB / LB)] ---
+        // Allows students to manually test ball feeding during flywheel speed tests
+        // Right Bumper toggles Pollen gate servo (open/close)
+        if (gamepad1.rightBumperWasPressed()) {
+            servos.togglePollen();
+        }
+
+        // Left Bumper toggles Nectar gate servo (open/close)
+        if (gamepad1.leftBumperWasPressed()) {
+            servos.toggleNectar();
+        }
+        // --- [END 2026-11-24: Manual Gate Servo Bumper Controls (RB / LB)] ---
+
+        // --- [START 2026-11-23: Speed Toggle Controls] ---
         // Y button toggles Pollen constant launch speed (CENTER_POLLEN_LAUNCH_SPEED = 1125 ticks/sec)
+        // Keeps the gate physically closed during spin-up until it first reaches 1120-1125 ticks/s
         if (gamepad1.yWasPressed()) {
             if (pollenTargetSpeed == RobotConstants.LAUNCHER_STOP_SPEED) {
+                servos.openPollen(); // Robot OPEN command keeps the physically closed gate in position while spinning up
+                pollenGateOpenedAtSpeed = false;
                 setPollenLaunchSpeed(RobotConstants.CENTER_POLLEN_LAUNCH_SPEED);
             } else {
+                pollenGateOpenedAtSpeed = false;
                 setPollenLaunchSpeed(RobotConstants.LAUNCHER_STOP_SPEED);
+                servos.openPollen(); // Reset to the physically closed position when stopping
             }
         }
-        // --- [END 2026-11-23: Live PIDF Tuning & Hands-Free Speed Controls] ---
+        // --- [END 2026-11-23: Speed Toggle Controls] ---
+
+        // --- [START 2026-11-24: Latch Pollen Gate Open After Reaching Speed] ---
+        // Open the physical gate once the flywheel first enters the 1120-1125 ticks/s band.
+        // Keep it open if feeding pollen causes the flywheel speed to drop; only Y=OFF closes it.
+        double pollenVelocity = launch1.getVelocity();
+        if (pollenTargetSpeed == RobotConstants.LAUNCHER_STOP_SPEED) {
+            if (pollenGateOpenedAtSpeed) {
+                servos.openPollen();
+            }
+            pollenGateOpenedAtSpeed = false;
+        } else if (!pollenGateOpenedAtSpeed
+                && pollenVelocity >= RobotConstants.POLLEN_GATE_OPEN_LOWER_SPEED
+                && pollenVelocity <= RobotConstants.POLLEN_GATE_OPEN_UPPER_SPEED) {
+            servos.closePollen(); // Closed command is physically open for this servo mounting
+            pollenGateOpenedAtSpeed = true;
+        }
+        // --- [END 2026-11-24: Latch Pollen Gate Open After Reaching Speed] ---
 
         // Left trigger sets Pollen launcher speed proportionally (0 to LAUNCHER_MAX_SPEED)
         if (gamepad1.left_trigger > RobotConstants.TRIGGER_DEADBAND) {
@@ -202,6 +256,10 @@ public class LaunchTestTeleOp extends OpMode {
         nectarTargetSpeed = RobotConstants.LAUNCHER_STOP_SPEED;
         launch1.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
         launch2.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
+        // --- [START 2026-11-24: Reset Pollen Gate When Stopping] ---
+        pollenGateOpenedAtSpeed = false;
+        servos.openPollen();
+        // --- [END 2026-11-24: Reset Pollen Gate When Stopping] ---
     }
 
     public double getMotorRpm(DcMotorEx motor) {
@@ -238,8 +296,13 @@ public class LaunchTestTeleOp extends OpMode {
         telemetry.addData("Tuning F (D-Pad R/L)", String.format(Locale.US, "%.4f", pollenF));
         telemetry.addData("Step Size (B button)", String.format(Locale.US, "%.4f", stepSizes[stepIndex]));
         telemetry.addLine("--------------------------------");
+        // --- [START 2026-11-24: Gate Servo Status Telemetry] ---
+        telemetry.addData("Pollen Gate", servos.isPollenOpen()
+                ? "ROBOT OPEN / PHYSICALLY CLOSED"
+                : "ROBOT CLOSED / PHYSICALLY OPEN");
+        // --- [END 2026-11-24: Gate Servo Status Telemetry] ---
         telemetry.addData("Nectar Speed", String.format(Locale.US, "%.0f / %d ticks/s", nectarVel, nectarTargetSpeed));
-        telemetry.addData("Controls", "Y=Toggle Pollen, X=Reset PIDF, LT/RT=Trigger");
+        telemetry.addData("Controls", "Y=Pollen, RB=Pollen Gate, X=Reset, LT/RT=Trigger");
         telemetry.update();
         // --- [END 2026-11-23: Real-Time Velocity, Error, and PIDF Tuning Telemetry] ---
     }
