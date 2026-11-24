@@ -1,39 +1,34 @@
 package org.firstinspires.ftc.teamcode.opmodes.teleop;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import org.firstinspires.ftc.teamcode.opmodes.RobotConstants;
 
 /**
- * LaunchTestTeleOp - A minimal TeleOp program for testing launch speeds
- *
- * This program provides ONLY launcher functionality for testing and tuning:
- * - Toggle launcher motors on/off with gamepad1.y
- *
- * TO ADJUST SPEEDS:
- * Edit these constants in RobotConstants:
- * - RobotConstants.LAUNCH_TEST_SPEED_1: Speed used when the launcher is toggled on
- * - RobotConstants.NEAR_LAUNCH_SPEED: Full speed for normal launch (teleop)
+ * LaunchTestTeleOp - A minimal TeleOp program for testing launch speeds and PIDF tuning
  *
  * CONTROLS:
- * - gamepad1.y: Toggle launcher motors on/off
- * - gamepad1.x / a / b: Run launcher at RobotConstants.LAUNCH_TEST_SPEED_1 / RobotConstants.LAUNCH_TEST_SPEED_2 / RobotConstants.LAUNCH_TEST_SPEED_3
- * - gamepad1.right_trigger: Hold to run launcher proportionally up to RobotConstants.LAUNCHER_MAX_SPEED; release to stop
+ * - gamepad1.left_trigger: Hold to run Pollen ("launchpollen") proportionally up to LAUNCHER_MAX_SPEED
+ * - gamepad1.right_trigger: Hold to run Nectar ("launchnectar") proportionally up to LAUNCHER_MAX_SPEED
  */
-
 @TeleOp(name = "Launch Test", group = "Test")
-@Disabled
+// After testing, uncomment @Disabled and restore its import to hide this test OpMode from the Driver Station.
+// @Disabled
 public class LaunchTestTeleOp extends OpMode {
     // Hardware components
-    protected DcMotorEx launch1;      // Left launcher motor
-    protected DcMotorEx launch2;      // Right launcher motor
+    protected DcMotorEx launch1;      // "launchpollen"
+    protected DcMotorEx launch2;      // "launchnectar"
 
-    protected boolean launcherOn = false;  // Tracks whether launcher motors are on
-    protected boolean leftTriggerActive = false;// Tracks whether right trigger is controlling speed
+    protected boolean launcherOn = false;
+    protected boolean leftTriggerActive = false;
     protected boolean rightTriggerActive = false;
+
+    protected int pollenTargetSpeed = RobotConstants.LAUNCHER_STOP_SPEED;
+    protected int nectarTargetSpeed = RobotConstants.LAUNCHER_STOP_SPEED;
+
     @Override
     public void init() {
         // Initialize hardware components
@@ -43,13 +38,27 @@ public class LaunchTestTeleOp extends OpMode {
         // Configure launcher motors for encoder-based velocity control
         launch1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         launch1.getMotorType().setTicksPerRev(RobotConstants.LAUNCHER_TICKS_PER_REV);
-        launch2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         launch1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        launch2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        launch2.getMotorType().setTicksPerRev(RobotConstants.LAUNCHER_TICKS_PER_REV);
         launch2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        // Stop launcher motors
-        launch1.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
-        launch2.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
+        // Added 2026-11-23: apply and report the launcher velocity PIDF coefficients.
+        launch1.setVelocityPIDFCoefficients(
+                RobotConstants.POLLEN_PIDF_P,
+                RobotConstants.POLLEN_PIDF_I,
+                RobotConstants.POLLEN_PIDF_D,
+                RobotConstants.POLLEN_PIDF_F
+        );
+        launch2.setVelocityPIDFCoefficients(
+                RobotConstants.NECTAR_PIDF_P,
+                RobotConstants.NECTAR_PIDF_I,
+                RobotConstants.NECTAR_PIDF_D,
+                RobotConstants.NECTAR_PIDF_F
+        );
+
+        stopMotors();
 
         telemetry.addData("Status", "Launch Test TeleOp Ready");
         telemetry.addData("Controls", "Y=toggle launcher, X/A/B=set speed, RT=variable speed");
@@ -59,105 +68,95 @@ public class LaunchTestTeleOp extends OpMode {
 
     @Override
     public void start() {
-        // Reset state when opmode starts
-        launch1.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
-        launch2.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
+        stopMotors();
     }
 
     @Override
     public void loop() {
-        // Toggle launcher motors with Y button
-        if (gamepad1.yWasPressed()) {
-            launcherOn = !launcherOn;
-            if (launcherOn && gamepad1.aWasPressed()) {
-                launch1.setVelocity(RobotConstants.LAUNCH_TEST_SPEED_1);
-                telemetry.addData("Status", "Pollen Launcher motors ON");
-            } else if (launcherOn && gamepad1.bWasPressed()){
-                launch2.setVelocity(RobotConstants.LAUNCH_TEST_SPEED_1);
-                telemetry.addData("Status", "Nectar Launcher motors ON");
-            }
-        }
-
-
-        // Right trigger sets launcher speed proportionally (0 to RobotConstants.LAUNCHER_MAX_SPEED)
+        // Left trigger sets Pollen launcher speed proportionally (0 to LAUNCHER_MAX_SPEED)
         if (gamepad1.left_trigger > RobotConstants.TRIGGER_DEADBAND) {
             leftTriggerActive = true;
             setPollenLaunchSpeed((int) (gamepad1.left_trigger * RobotConstants.LAUNCHER_MAX_SPEED));
         } else if (leftTriggerActive) {
-            // Trigger released - stop launcher
             leftTriggerActive = false;
-            launcherOn = false;
+            pollenTargetSpeed = RobotConstants.LAUNCHER_STOP_SPEED;
             launch1.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
-            telemetry.addData("Status", "Left Trigger released - Launcher motors OFF");
+            launcherOn = (nectarTargetSpeed != RobotConstants.LAUNCHER_STOP_SPEED);
+            telemetry.addData("Status", "Left Trigger released - Pollen OFF");
         }
 
+        // Right trigger sets Nectar launcher speed proportionally (0 to LAUNCHER_MAX_SPEED)
         if (gamepad1.right_trigger > RobotConstants.TRIGGER_DEADBAND) {
             rightTriggerActive = true;
             setNectarLaunchSpeed((int) (gamepad1.right_trigger * RobotConstants.LAUNCHER_MAX_SPEED));
         } else if (rightTriggerActive) {
-            // Trigger released - stop launcher
             rightTriggerActive = false;
-            launcherOn = false;
+            nectarTargetSpeed = RobotConstants.LAUNCHER_STOP_SPEED;
             launch2.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
-            telemetry.addData("Status", "Right Trigger released - Launcher motors OFF");
+            launcherOn = (pollenTargetSpeed != RobotConstants.LAUNCHER_STOP_SPEED);
+            telemetry.addData("Status", "Right Trigger released - Nectar OFF");
         }
 
-        // Update telemetry
         updateTelemetry();
     }
 
-    public  double getRpm(){
-        double rpm = 0.0;
-        if(launcherOn) {
-            double ticksPerRev = launch1.getMotorType().getTicksPerRev();
-
-            // Get velocity in ticks per second
-            double ticksPerSec = launch1.getVelocity();
-
-            // Convert ticks per second to Revolutions Per Minute (RPM)
-            rpm = (ticksPerSec / ticksPerRev) * 60.0;
-        }
-        return rpm;
+    protected void stopMotors() {
+        launcherOn = false;
+        pollenTargetSpeed = RobotConstants.LAUNCHER_STOP_SPEED;
+        nectarTargetSpeed = RobotConstants.LAUNCHER_STOP_SPEED;
+        launch1.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
+        launch2.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
     }
 
-    /**
-     * Run both launcher motors at the given velocity
-     */
+    public double getMotorRpm(DcMotorEx motor) {
+        double ticksPerRev = motor.getMotorType().getTicksPerRev();
+        if (ticksPerRev <= 0) {
+            return 0.0;
+        }
+        return (motor.getVelocity() / ticksPerRev) * 60.0;
+    }
+
     protected void setPollenLaunchSpeed(int speed) {
         launcherOn = true;
+        pollenTargetSpeed = speed;
         launch1.setVelocity(speed);
-        telemetry.addData("Status", String.format("Pollen Launcher set to %d ticks/sec", speed));
+        telemetry.addData("Status", String.format("Pollen target: %d ticks/sec", speed));
     }
 
     protected void setNectarLaunchSpeed(int speed) {
         launcherOn = true;
+        nectarTargetSpeed = speed;
         launch2.setVelocity(speed);
-        telemetry.addData("Status", String.format("Nectar Launcher set to %d ticks/sec", speed));
+        telemetry.addData("Status", String.format("Nectar target: %d ticks/sec", speed));
     }
 
-    /**
-     * Update telemetry display
-     */
     protected void updateTelemetry() {
-        telemetry.addData("Launcher", launcherOn ? "ON" : "OFF");
-        telemetry.addData("Launcher Speed", launch1.getVelocity() > 0 ?
-            String.format("%d ticks/sec", (int)launch1.getVelocity()) : "STOPPED");
-        telemetry.addData("Current RPM", getRpm());
-        telemetry.addData("ticksPerRev", launch1.getMotorType().getTicksPerRev());
-        //telemetry.addData('ticksPerRev', launch1.getMotorType().getTicksPerRev());
-        telemetry.addData("---", "---");
+        double pollenVel = launch1.getVelocity();
+        double nectarVel = launch2.getVelocity();
 
-        telemetry.addData("Speeds:", "");
-        //telemetry.addData("  Full Speed", String.format("%d ticks/sec", RobotConstants.NEAR_LAUNCH_SPEED));
-        telemetry.addData("---", "---");
-        telemetry.addData("Controls", "Y=toggle launcher, X/A/B=set speed, RT=variable speed");
+        PIDFCoefficients pollenPidf = launch1.getPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER);
+        PIDFCoefficients nectarPidf = launch2.getPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        telemetry.addData("Launcher", launcherOn ? "ON" : "OFF");
+
+        telemetry.addData("Pollen Speed", "%.0f / %d ticks/s (err %.0f)",
+                pollenVel, pollenTargetSpeed, pollenTargetSpeed - pollenVel);
+        telemetry.addData("Pollen RPM", "%.1f", getMotorRpm(launch1));
+        telemetry.addData("Pollen PIDF", "P=%.3f I=%.3f D=%.3f F=%.2f",
+                pollenPidf.p, pollenPidf.i, pollenPidf.d, pollenPidf.f);
+
+        telemetry.addData("Nectar Speed", "%.0f / %d ticks/s (err %.0f)",
+                nectarVel, nectarTargetSpeed, nectarTargetSpeed - nectarVel);
+        telemetry.addData("Nectar RPM", "%.1f", getMotorRpm(launch2));
+        telemetry.addData("Nectar PIDF", "P=%.3f I=%.3f D=%.3f F=%.2f",
+                nectarPidf.p, nectarPidf.i, nectarPidf.d, nectarPidf.f);
+
+        telemetry.addData("Controls", "LT=Pollen speed, RT=Nectar speed");
         telemetry.update();
     }
 
     @Override
     public void stop() {
-        // Cleanup when opmode stops
-        launch1.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
-        launch2.setVelocity(RobotConstants.LAUNCHER_STOP_SPEED);
+        stopMotors();
     }
 }

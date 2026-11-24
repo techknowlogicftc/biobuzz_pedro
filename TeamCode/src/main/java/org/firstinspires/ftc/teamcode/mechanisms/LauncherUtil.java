@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.mechanisms;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import org.firstinspires.ftc.teamcode.opmodes.RobotConstants;
 
 /**
@@ -10,7 +11,7 @@ import org.firstinspires.ftc.teamcode.opmodes.RobotConstants;
  * Based on LaunchTestTeleOp from Ftc-Biobuzz.
  *
  * Hardware config names: "launchpollen", "launchnectar"
- * Speeds are in encoder ticks per second. Speed values live in RobotConstants.
+ * Speeds are in encoder ticks per second. Speed and PIDF values live in RobotConstants.
  */
 public class LauncherUtil {
 
@@ -30,6 +31,20 @@ public class LauncherUtil {
             motor.getMotorType().setTicksPerRev(RobotConstants.LAUNCHER_TICKS_PER_REV);
             motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         }
+
+        // Added 2026-11-23: apply custom velocity PIDF coefficients for each launcher motor.
+        launchpollen.setVelocityPIDFCoefficients(
+                RobotConstants.POLLEN_PIDF_P,
+                RobotConstants.POLLEN_PIDF_I,
+                RobotConstants.POLLEN_PIDF_D,
+                RobotConstants.POLLEN_PIDF_F
+        );
+        launchnectar.setVelocityPIDFCoefficients(
+                RobotConstants.NECTAR_PIDF_P,
+                RobotConstants.NECTAR_PIDF_I,
+                RobotConstants.NECTAR_PIDF_D,
+                RobotConstants.NECTAR_PIDF_F
+        );
 
         stop();
     }
@@ -126,6 +141,13 @@ public class LauncherUtil {
         return isPollenOn() ? toRpm(launchpollen) : 0.0;
     }
 
+    /**
+     * Active velocity PIDF coefficients on the pollen motor controller
+     */
+    public PIDFCoefficients getPollenActivePidf() {
+        return launchpollen.getPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
+
     // ---------------- Nectar motor ----------------
 
     /**
@@ -176,6 +198,13 @@ public class LauncherUtil {
         return isNectarOn() ? toRpm(launchnectar) : 0.0;
     }
 
+    /**
+     * Active velocity PIDF coefficients on the nectar motor controller
+     */
+    public PIDFCoefficients getNectarActivePidf() {
+        return launchnectar.getPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
+
     // ---------------- Helpers ----------------
 
     private static int fractionToSpeed(double fraction) {
@@ -184,6 +213,9 @@ public class LauncherUtil {
 
     private static double toRpm(DcMotorEx motor) {
         double ticksPerRev = motor.getMotorType().getTicksPerRev();
+        if (ticksPerRev <= 0) {
+            return 0.0;
+        }
         return (motor.getVelocity() / ticksPerRev) * 60.0;
     }
 }

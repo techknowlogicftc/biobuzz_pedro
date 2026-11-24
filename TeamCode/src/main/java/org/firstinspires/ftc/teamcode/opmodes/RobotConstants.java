@@ -84,6 +84,21 @@ public class RobotConstants {
     public static final double LAUNCHER_TICKS_PER_REV = 28;     // Encoder ticks per motor revolution
     public static final int LAUNCHER_SPEED_STEP = 5;           // Bumper speed adjustment per press (teleop)
 
+    // Added 2026-11-23: launcher velocity PIDF tuning coefficients.
+    // Launcher velocity PIDF coefficients (for RUN_USING_ENCODER mode)
+    // Tune F from measured full-battery max ticks/sec: F = 32767.0 / maxTicksPerSec
+    public static final double POLLEN_PIDF_P = 1.2;    // Proportional gain: reacts to current velocity error
+    public static final double POLLEN_PIDF_I = 0.0;    // Integral gain: start at 0.0 (or small e.g. 0.1 * P) to avoid overshoot
+    public static final double POLLEN_PIDF_D = 0.0;    // Derivative gain: usually 0.0 for flywheels
+    public static final double POLLEN_PIDF_F = 12.0;   // Feed-forward gain: baseline power for target speed
+
+    public static final double NECTAR_PIDF_P = 1.2;    // Proportional gain for nectar launcher motor
+    public static final double NECTAR_PIDF_I = 0.0;    // Integral gain for nectar launcher motor
+    public static final double NECTAR_PIDF_D = 0.0;    // Derivative gain for nectar launcher motor
+    public static final double NECTAR_PIDF_F = 12.0;   // Feed-forward gain for nectar launcher motor
+
+
+
     // Launcher test speeds (ticks per second) - X / A / B buttons in LaunchTestTeleOp
     public static final int LAUNCH_TEST_SPEED_1 = 300;
     public static final int LAUNCH_TEST_SPEED_2 = 2000;
