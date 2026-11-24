@@ -84,7 +84,7 @@ public class RobotConstants {
     public static final double LAUNCHER_TICKS_PER_REV = 28;     // Encoder ticks per motor revolution
     public static final int LAUNCHER_SPEED_STEP = 5;           // Bumper speed adjustment per press (teleop)
 
-    // Added 2026-11-23: launcher velocity PIDF tuning coefficients.
+    // --- [START 2026-11-23: Launcher velocity PIDF tuning coefficients] ---
     // These are starting values for RUN_USING_ENCODER velocity control, not guaranteed final tuning.
     // P corrects current speed error; I corrects error that persists over time; D dampens rapid changes;
     // F provides the baseline output needed to maintain speed. Tune Pollen and Nectar independently.
@@ -100,6 +100,7 @@ public class RobotConstants {
     public static final double NECTAR_PIDF_I = 0.0;    // Integral gain for nectar launcher motor
     public static final double NECTAR_PIDF_D = 0.0;    // Derivative gain for nectar launcher motor
     public static final double NECTAR_PIDF_F = 12.0;   // Feed-forward gain for nectar launcher motor
+    // --- [END 2026-11-23: Launcher velocity PIDF tuning coefficients] ---
 
 
 

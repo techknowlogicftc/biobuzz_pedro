@@ -32,7 +32,7 @@ public class LauncherUtil {
             motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         }
 
-        // Added 2026-11-23: apply custom velocity PIDF coefficients for each launcher motor.
+        // --- [START 2026-11-23: Apply custom velocity PIDF coefficients for launcher motors] ---
         launchpollen.setVelocityPIDFCoefficients(
                 RobotConstants.POLLEN_PIDF_P,
                 RobotConstants.POLLEN_PIDF_I,
@@ -45,6 +45,7 @@ public class LauncherUtil {
                 RobotConstants.NECTAR_PIDF_D,
                 RobotConstants.NECTAR_PIDF_F
         );
+        // --- [END 2026-11-23: Apply custom velocity PIDF coefficients for launcher motors] ---
 
         stop();
     }
